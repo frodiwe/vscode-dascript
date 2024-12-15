@@ -137,10 +137,6 @@
           "name": "keyword.control.dascript"
         },
         {
-          "match": "\\b(def)\\b",
-          "name": "storage.type.function.dascript"
-        },
-        {
           "match": "\\b(default)\\b",
           "name": "storage.modifier.specifier.init.dascript"
         },
@@ -622,12 +618,27 @@
     },
     "function_no_args": {
       "name": "meta.funciton.noargs.dascript",
-      "begin": "(?:def)\\s+(?:(?:private|public|abstract|override|static)\\s+)?(?:(?:private|public|abstract|override)\\s+)?(?:operator)?([[:alnum:]_]*)\\s*(?!\\()",
+      "begin": "(def)\\s+((?:private|public|abstract|override|static)\\s+)?((?:private|public|abstract|override)\\s+)?\\s*(?:(operator\\s*(.+?))|([[:alnum:]_]*))\\s*(?!\\()(?:\\s*\\:\\s*([[:alnum:]_]+))?\\s*(?=$|\\{)",
       "beginCaptures": {
         "1": {
-          "name": "storage.type.function.dascript"
+          "name": "keyword.type.def.dascript"
         },
         "2": {
+          "name": "keyword.type.modifier.dascript"
+        },
+        "3": {
+          "name": "keyword.type.modifier.dascript"
+        },
+        "4": {
+          "name": "keyword.type.operator.dascript"
+        },
+        "5": {
+          "name": "entity.name.function.operator.dascript"
+        },
+        "6": {
+          "name": "entity.name.function.dascript"
+        },
+        "7": {
           "name": "entity.name.type.function.return.dascript"
         }
       },

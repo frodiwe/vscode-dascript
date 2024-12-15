@@ -60,8 +60,8 @@ repository:
     patterns:
       - match: \b(while|if|static_if|else|for|uninitialized|recover|typeinfo|type|in|is|as|elif|static_elif|return|break|try|expect|operator|finally|deref|with|cast|upcast|addr|continue|where|pass|label|goto|implicit|explicit|shared|unsafe|aka|assume|sealed|yield|operator)\b
         name: keyword.control.dascript
-      - match: \b(def)\b
-        name: storage.type.function.dascript
+      # - match: \b(def)\b
+      #   name: storage.type.function.dascript
       - match: \b(default)\b
         name: storage.modifier.specifier.init.dascript
       - match: \b(var|let)\b
@@ -327,11 +327,21 @@ repository:
           - include: '#strings'
   function_no_args:
     name: meta.funciton.noargs.dascript
-    begin: (?:def)\s+(?:(?:private|public|abstract|override|static)\s+)?(?:(?:private|public|abstract|override)\s+)?(?:operator)?([[:alnum:]_]*)\s*(?!\()
+    begin: (def)\s+((?:private|public|abstract|override|static)\s+)?((?:private|public|abstract|override)\s+)?\s*(?:(operator\s*(.+?))|([[:alnum:]_]*))\s*(?!\()(?:\s*\:\s*([[:alnum:]_]+))?\s*(?=$|\{)
     beginCaptures:
       1:
-        name: storage.type.function.dascript
+        name: keyword.type.def.dascript
       2:
+        name: keyword.type.modifier.dascript
+      3:
+        name: keyword.type.modifier.dascript
+      4:
+        name: keyword.type.operator.dascript
+      5:
+        name: entity.name.function.operator.dascript
+      6:
+        name: entity.name.function.dascript
+      7:
         name: entity.name.type.function.return.dascript
     end: (?=$|\{)
   blocks:
