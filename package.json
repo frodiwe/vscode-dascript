@@ -2,7 +2,7 @@
     "name": "dascript",
     "displayName": "daScript",
     "description": "daScript is high-performance statically strong typed scripting language, designed to be high-performance as embeddable ‘scripting’ language for real-time applications (like games).",
-    "version": "0.0.12",
+    "version": "0.0.14",
     "publisher": "eguskov",
     "engines": {
         "vscode": "^1.40.0"
@@ -24,7 +24,8 @@
                 ],
                 "extensions": [
                     ".das",
-                    ".dascript"
+                    ".dascript",
+                    ".das_project"
                 ],
                 "configuration": "./language-configuration.json"
             }

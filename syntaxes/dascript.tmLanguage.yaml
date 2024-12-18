@@ -60,8 +60,6 @@ repository:
     patterns:
       - match: \b(while|if|static_if|else|for|uninitialized|recover|typeinfo|type|in|is|as|elif|static_elif|return|break|try|expect|operator|finally|deref|with|cast|upcast|addr|continue|where|pass|label|goto|implicit|explicit|shared|unsafe|aka|assume|sealed|yield|operator)\b
         name: keyword.control.dascript
-      # - match: \b(def)\b
-      #   name: storage.type.function.dascript
       - match: \b(default)\b
         name: storage.modifier.specifier.init.dascript
       - match: \b(var|let)\b
@@ -101,19 +99,16 @@ repository:
         begin: '"'
         end: '"'
         patterns:
-        - name: constant.character.escape.dascript
-          match: \\{
-        - begin: (\{)
-          beginCaptures:
-            '0': {name: punctuation.definition.block.begin.dascript}
-          end: (})
-          endCaptures:
-            '0': {name: punctuation.definition.block.end.dascript}
-          patterns:
-          - include: $self
-          - include: '#identifiers'
-        - name: constant.character.escape.dascript
-          match: \\.
+          - begin: (\{)
+            beginCaptures:
+              '0': {name: punctuation.definition.block.begin.dascript}
+            end: (\})
+            endCaptures:
+              '0': {name: punctuation.definition.block.end.dascript}
+            patterns:
+              - include: $self
+      - name: constant.character.escape.dascript
+        match: \\.
       - name: string.quoted.single.dascript
         begin: "'"
         end: "'"
@@ -136,26 +131,6 @@ repository:
       - name: comment.block
         begin: (\/\*)
         end: (\*\/)
-  identifiers:
-    patterns:
-    - include: '#parameter_name'
-  parameter_name:
-    match: '\b([_A-Za-z]\w*)\b'
-    name: variable.parameter.dascript
-  generic_names:
-    name: meta.identifier.dascript
-    match: '[[:alpha:]_][[:alnum:]_]*'
-  dotted_name:
-    begin: (?=(?:\.(?!\s+require)\s*)?[[:alpha:]_][[:alnum:]_]*(?:\s*\.\s*[[:alpha:]_][[:alnum:]_]*)*)
-    end: (?![[:alnum:]_\.\s])|(?=(?<!\.)\s+[^.])|$
-    patterns:
-      - begin: (\.)(?=[[:alpha:]_][[:alnum:]_]*)
-        beginCaptures:
-          1: {name: meta.dot.dascript}
-        end: (?![[:alnum:]_])
-        patterns:
-          - include: '#builtin_functions_name'
-          - include: '#generic_names'
   keyword_arguments:
     begin: \b([[:alpha:]_][[:alnum:]_]*)\s*(=)(?!=)
     beginCaptures:
@@ -241,22 +216,6 @@ repository:
         beginCaptures:
           1: {name: entity.name.function}
         end: (?:\<\|)
-  annotated_arguments:
-    begin: \b([[:alpha:]_][[:alnum:]_\,\ ]*)\s*(:)|(?=\()
-    beginCaptures:
-      1: {name: variable.parameter.function.dascript}
-      2: {name: punctuation.separator.annotation.dascript}
-    # Match ':' but not '::' - (?: (?<!:) : (?!:) )
-    end: \s*(?:(;)|(?=$\n?|\)|(?:(?<!:):(?!:))))
-    contentName: entity.name.type.dascript
-    endCaptures:
-      1: {name: punctuation.separator.parameters.dascript}
-    patterns:
-      - match: '='
-        name: keyword.operator.assignment.dascript
-      - match: \b(const)\b
-        name: storage.modifier.specifier.const.dascript
-      - include: $self
   function:
     name: meta.function.dascript
     begin: (def)\s+((?:private|public|abstract|override|static)\s+)?((?:private|public|abstract|override)\s+)?(operator)?(?=.+\s*\()|(\$)\s*(?=\[(?:.*?)\])|(\$)\s*(?=\()
@@ -373,9 +332,17 @@ repository:
           - match: \b([[:alnum:]_]+)\b(?!\s*=\s*)
             name: storage.type.annotation.dascript
           - include: '#strings'
+          - include: '#comments'
+      - name: meta.declaration.annotation.gen2.dascript
+        begin: ((?<!\@)\@[[:alnum:]_]+)
+        beginCaptures:
+          1: {name: support.function.annotation.dascript}
+        end: (?=\=|\n|\s+)
+        patterns:
+          - include: '#comments'
   variable_declaration:
     name: meta.variable.declaration.dascript
-    begin: (?:\:\s*)((?!auto|table|array|iterator|tuple))
+    begin: (?<!\?.+?)(?:\:\s*)((?!auto|table|array|iterator|tuple))
     end: (?:\s*(\=|\s+|\n|\;))
     patterns:
       - include: '#literals'
@@ -417,7 +384,6 @@ repository:
     begin: \b(options)\s*([[:alnum:]_]+)\b((=)\b([[:alnum:]_]+))?
     beginCaptures:
       1: {name: keyword.control.dascript}
-      2: {name: variable.type.other.require.dascript}
     end: (?=\n)
     patterns:
       - include: '#comments'
@@ -425,11 +391,10 @@ repository:
       - include: '#literals'
   require_specifier:
     name: meta.require.dascript
-    begin: \b(require)\s*([[:alnum:]_\/]+)\b
+    begin: \b(require)\s*(.+?)\b
     beginCaptures:
       1: {name: keyword.control.dascript}
-      2: {name: variable.type.other.require.dascript}
-    end: (?=\s*)
+    end: (?=\s|\n|\;)
     patterns:
       - include: '#comments'
       - include: '#strings'
@@ -469,11 +434,13 @@ repository:
         begin: \b(?:(?<=block|lambda)\s*\<\s*)
         end: (?=\()
       - name: meta.template.dascript
-        begin: \b\<(?!\<)(?![[:alnum:]_]+\s*)
+        begin: \b\<(?!\<)(?=\s*[[:alnum:]_]+\s*)
         beginCaptures:
           1: {name: entity.name.type.dascript}
         end: \>
         patterns:
+          - include: '#literals'
+          - include: '#keywords'
           - name: meta.template.argument.variant.dascript
             begin: \b([[:alnum:]_]+)\s*\:\s*([[:alnum:]_]+)\b
             beginCaptures:
@@ -484,7 +451,7 @@ repository:
             begin: \b(auto)\b
             beginCaptures:
               1: {name: storage.type.auto.dascript}
-            end: (?=\))
+            end: (?=\)|\>)
             patterns:
               - name: entity.name.type.auto.typename.dscript
                 match: \b([[:alnum:]_]+)\b
@@ -493,5 +460,3 @@ repository:
             beginCaptures:
               1: {name: entity.name.type.dascript}
             end: (?=\;|\>)
-          - include: '#literals'
-          - include: '#keywords'
