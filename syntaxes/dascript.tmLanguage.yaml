@@ -342,7 +342,7 @@ repository:
           - include: '#comments'
   variable_declaration:
     name: meta.variable.declaration.dascript
-    begin: (?<!\?.+?)(?:\:\s*)((?!auto|table|array|iterator|tuple))
+    begin: (?<!\?.+?)(?:\:\s*)((?!auto|table|array|iterator|tuple|lambda|block))
     end: (?:\s*(\=|\s+|\n|\;))
     patterns:
       - include: '#literals'
@@ -381,7 +381,7 @@ repository:
           1: {name: entity.other.inherited-class.dascript}
   options_specifier:
     name: meta.options.dascript
-    begin: \b(options)\s*([[:alnum:]_]+)\b((=)\b([[:alnum:]_]+))?
+    begin: \b(options)\s+([[:alnum:]_]+)\b((=)\b([[:alnum:]_]+))?
     beginCaptures:
       1: {name: keyword.control.dascript}
     end: (?=\n)
@@ -391,7 +391,7 @@ repository:
       - include: '#literals'
   require_specifier:
     name: meta.require.dascript
-    begin: \b(require)\s*(.+?)\b
+    begin: \b(require)\s+(.+?)\b
     beginCaptures:
       1: {name: keyword.control.dascript}
     end: (?=\s|\n|\;)
