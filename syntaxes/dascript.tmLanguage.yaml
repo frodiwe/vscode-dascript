@@ -58,13 +58,15 @@ repository:
         name: constant.numeric.integer.decimal.dascript
   keywords:
     patterns:
-      - match: \b(while|if|static_if|else|for|uninitialized|recover|typeinfo|type|in|is|as|elif|static_elif|return|break|try|expect|operator|finally|deref|with|cast|upcast|addr|continue|where|pass|label|goto|implicit|explicit|shared|unsafe|aka|assume|sealed|yield|operator)\b
+      - match: \b(while|if|static_if|else|for|uninitialized|recover|in|is|as|elif|static_elif|return|break|try|expect|operator|finally|deref|with|cast|upcast|addr|continue|where|pass|label|goto|implicit|explicit|unsafe|aka|sealed|yield|operator)\b
         name: keyword.control.dascript
       - match: \b(default)\b
         name: storage.modifier.specifier.init.dascript
-      - match: \b(var|let)\b
+      - match: \b(type|typename|typeinfo)\b
+        name: storage.modifier.specifier.init.dascript
+      - match: \b(var|let|assume)\b
         name: storage.modifier.specifier.decl.dascript
-      - match: \b(inscope|static|public|private|override)\b
+      - match: \b(inscope|static|shared|public|private|override)\b
         name: storage.modifier.specifier.decl.attr.dascript
       - match: \b(new|delete)\b
         name: storage.modifier.specifier.alloc.dascript
@@ -96,13 +98,13 @@ repository:
   strings:
     patterns:
       - name: string.quoted.double.dascript
-        begin: '"'
-        end: '"'
+        begin: ((?<!(?<!\\)\\)")
+        end: ((?<!(?<!\\)\\)")
         patterns:
-          - begin: (\{)
+          - begin: ((?<!\\)\{)
             beginCaptures:
               '0': {name: punctuation.definition.block.begin.dascript}
-            end: (\})
+            end: ((?<!\\)\})
             endCaptures:
               '0': {name: punctuation.definition.block.end.dascript}
             patterns:
@@ -403,7 +405,7 @@ repository:
     name: meta.module.dascript
     begin: \b(module)\s*([[:alnum:]_]+)\s*(public|private|shared)?\s(public|private|shared)?
     beginCaptures:
-      1: {name: keyword.type.module.dascript}
+      1: {name: keyword.module.dascript}
       2: {name: entity.name.type.module.dascript}
       3: {name: storage.modifier.module.dascript}
       4: {name: storage.modifier.module.dascript}
@@ -466,3 +468,5 @@ repository:
             beginCaptures:
               1: {name: entity.name.type.dascript}
             end: (?=\;|\>)
+            patterns:
+              - include: '#keywords'
