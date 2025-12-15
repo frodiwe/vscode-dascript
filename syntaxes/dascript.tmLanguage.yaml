@@ -98,11 +98,15 @@ repository:
   strings:
     patterns:
       - name: string.quoted.double.dascript
-        begin: ((?<!(?<!\\)\\)")
-        end: ((?<!(?<!\\)\\)")
+        begin: '"'
+        end: '"|(?=\n)'
+        beginCaptures:
+          0: {name: punctuation.definition.string.begin.dascript}
+        endCaptures:
+          0: {name: punctuation.definition.string.end.dascript}
         patterns:
           - name: constant.character.escape.dascript
-            match: \\[\\"{}\[\]]
+            match: \\[\\"{}\[\]nrt]
           - name: meta.interpolation.dascript
             contentName: meta.embedded.expression.dascript
             begin: \{
@@ -114,7 +118,6 @@ repository:
             patterns:
               - include: '#comments'
               - include: '#keywords'
-              - include: '#strings'
               - include: '#builtin_types'
               - include: '#builtin_functions_call'
               - include: '#function_call'
@@ -126,17 +129,23 @@ repository:
                 captures:
                   '1': {name: punctuation.separator.format.dascript}
                   '2': {name: constant.numeric.float.dascript}
-      - name: constant.character.escape.dascript
-        match: \\.
       - name: string.quoted.single.dascript
         begin: "'"
-        end: "'"
+        end: "'|(?=\n)"
+        beginCaptures:
+          0: {name: punctuation.definition.string.begin.dascript}
+        endCaptures:
+          0: {name: punctuation.definition.string.end.dascript}
         patterns:
           - name: constant.character.escape.dascript
-            match: \\.
+            match: \\[\\'{}\[\]nrt]
       - name: string.quoted.other.dascript
         begin: '@"'
         end: '"'
+        beginCaptures:
+          0: {name: punctuation.definition.string.begin.dascript}
+        endCaptures:
+          0: {name: punctuation.definition.string.end.dascript}
         patterns:
           - name: constant.character.escape.dascript
             match: \\.
@@ -361,8 +370,8 @@ repository:
   #         - include: '#comments'
   variable_declaration:
     name: meta.variable.declaration.dascript
-    begin: (?<!\?.+?)(?:\:\s*)((?!auto|table|array|iterator|tuple|lambda|block))
-    end: (?:\s*(\=|\s+|\n|\;))
+    begin: (?<=[\w\?])\s*\:\s*((?!auto|table|array|iterator|tuple|lambda|block))
+    end: (?:\s*(\=|\s+|\n|\;|\,|\)))
     patterns:
       - include: '#literals'
       - include: '#template'
