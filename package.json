@@ -38,7 +38,15 @@
             }
         ]
     },
+    "scripts": {
+        "test": "node test/runTest.js"
+    },
     "devDependencies": {
+        "@types/vscode": "^1.40.0",
+        "@types/node": "^16.x",
+        "@vscode/test-electron": "^2.3.0",
+        "mocha": "^10.2.0",
+        "glob": "^10.3.0",
         "js-yaml": "^3.13.1"
     }
 }
