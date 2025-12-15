@@ -316,32 +316,32 @@ repository:
           0: {name: punctuation.definition.block.end.dascript}
         patterns:
           - include: $self
-  annotations:
-    patterns:
-      - name: meta.declaration.annotation.dascript
-        # Match '[' but not '[[' - (?: (?<!\[) \[ (?!\[) )
-        begin: (((?<!\[|\<\-\s|\:\=\s|\=\s)\[(?!\[))\s*)(\()?
-        beginCaptures:
-          2: {name: punctuation.definition.annotation.dascript}
-          3: {name: storage.type.annotation.dascript}
-          4: {name: punctuation.definition.annotation-arguments.begin.bracket.round.dascript}
-        end: (\))?(\])
-        endCaptures:
-          1: {name: punctuation.definition.annotation-arguments.end.bracket.round.dascript}
-          2: {name: punctuation.definition.annotation.dascript}
-        patterns:
-          - include: '#function_call'
-          - match: \b([[:alnum:]_]+)\b(?!\s*=\s*)
-            name: storage.type.annotation.dascript
-          - include: '#strings'
-          - include: '#comments'
-      - name: meta.declaration.annotation.gen2.dascript
-        begin: ((?<!\@)\@[[:alnum:]_]+)
-        beginCaptures:
-          1: {name: support.function.annotation.dascript}
-        end: (?=\=|\n|\s+)
-        patterns:
-          - include: '#comments'
+  # annotations:
+  #   patterns:
+  #     - name: meta.declaration.annotation.dascript
+  #       # Match '[' but not '[[' - (?: (?<!\[) \[ (?!\[) )
+  #       begin: (((?<!\[|\<\-\s|\:\=\s|\=\s)\[(?!\[))\s*)(\()?
+  #       beginCaptures:
+  #         2: {name: punctuation.definition.annotation.dascript}
+  #         3: {name: storage.type.annotation.dascript}
+  #         4: {name: punctuation.definition.annotation-arguments.begin.bracket.round.dascript}
+  #       end: (\))?(\])
+  #       endCaptures:
+  #         1: {name: punctuation.definition.annotation-arguments.end.bracket.round.dascript}
+  #         2: {name: punctuation.definition.annotation.dascript}
+  #       patterns:
+  #         - include: '#function_call'
+  #         - match: \b([[:alnum:]_]+)\b(?!\s*=\s*)
+  #           name: storage.type.annotation.dascript
+  #         - include: '#strings'
+  #         - include: '#comments'
+  #     - name: meta.declaration.annotation.gen2.dascript
+  #       begin: ((?<!\@)\@[[:alnum:]_]+)
+  #       beginCaptures:
+  #         1: {name: support.function.annotation.dascript}
+  #       end: (?=\=|\n|\s+)
+  #       patterns:
+  #         - include: '#comments'
   variable_declaration:
     name: meta.variable.declaration.dascript
     begin: (?<!\?.+?)(?:\:\s*)((?!auto|table|array|iterator|tuple|lambda|block))
