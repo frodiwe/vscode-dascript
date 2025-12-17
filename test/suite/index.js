@@ -1,8 +1,8 @@
 const path = require('path');
 const Mocha = require('mocha');
-const glob = require('glob');
+const { glob } = require('glob');
 
-function run() {
+async function run() {
     const mocha = new Mocha({
         ui: 'bdd',
         color: true
@@ -10,15 +10,16 @@ function run() {
 
     const testsRoot = path.resolve(__dirname, '.');
 
-    return new Promise((resolve, reject) => {
-        glob('**/**.test.js', { cwd: testsRoot }, (err, files) => {
-            if (err) {
-                return reject(err);
-            }
+    try {
+        const files = await glob('**/**.test.js', { cwd: testsRoot });
+        
+        files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
 
-            files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
-
+        return new Promise((resolve, reject) => {
             try {
+                // Load files to set up Mocha globals before running
+                mocha.loadFiles();
+                
                 mocha.run(failures => {
                     if (failures > 0) {
                         reject(new Error(`${failures} tests failed.`));
@@ -30,7 +31,9 @@ function run() {
                 reject(err);
             }
         });
-    });
+    } catch (err) {
+        throw err;
+    }
 }
 
 module.exports = { run };

@@ -27,6 +27,17 @@
         "panel": "shared"
       },
       "promptOnClose": true
+    },
+    {
+      "label": "package",
+      "type": "shell",
+      "command": "npx @vscode/vsce package",
+      "problemMatcher": [],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
     }
   ]
 }
