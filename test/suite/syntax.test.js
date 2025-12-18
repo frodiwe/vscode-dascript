@@ -328,4 +328,79 @@ suite('daScript Syntax Highlighting Tests', () => {
 
         console.log('✓ Multiple strings test passed');
     });
+
+    test('Function pointer parameter types should highlight correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/function-pointers.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Find the line with basic function pointer: threshold : function<(nodeId : NodeId) : float>
+        let functionPointerLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('threshold : function<(nodeId : NodeId)')) {
+                functionPointerLine = i;
+                break;
+            }
+        }
+        assert.ok(functionPointerLine >= 0, 'Should find line with function pointer declaration');
+
+        // Verify NodeId (parameter type) is tokenized as a type
+        const nodeIdPos = findInLine(document, functionPointerLine, 'NodeId');
+        const nodeIdScopes = await getTokenScopesAt(document, functionPointerLine, nodeIdPos.character);
+        const hasTypeScope = nodeIdScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        assert.ok(hasTypeScope, `NodeId should be tokenized as a type. Got scopes: ${JSON.stringify(nodeIdScopes?.scopes)}`);
+
+        // Verify float (return type) is also tokenized correctly
+        const floatPos = findInLine(document, functionPointerLine, 'float');
+        const floatScopes = await getTokenScopesAt(document, functionPointerLine, floatPos.character);
+        const floatHasTypeScope = floatScopes?.scopes?.some(scope =>
+            scope.includes('support.type') || scope.includes('entity.name.type')
+        );
+        assert.ok(floatHasTypeScope, `float should be tokenized as a type. Got scopes: ${JSON.stringify(floatScopes?.scopes)}`);
+
+        // Test multiple parameters case
+        let multiParamLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('callback : function<(first : FirstType, second : SecondType)')) {
+                multiParamLine = i;
+                break;
+            }
+        }
+        
+        if (multiParamLine >= 0) {
+            // Verify FirstType is tokenized as a type
+            const firstTypePos = findInLine(document, multiParamLine, 'FirstType');
+            const firstTypeScopes = await getTokenScopesAt(document, multiParamLine, firstTypePos.character);
+            const firstTypeHasScope = firstTypeScopes?.scopes?.some(scope =>
+                scope.includes('entity.name.type')
+            );
+            assert.ok(firstTypeHasScope, `FirstType should be tokenized as a type. Got scopes: ${JSON.stringify(firstTypeScopes?.scopes)}`);
+
+            // Verify SecondType is tokenized as a type
+            const secondTypePos = findInLine(document, multiParamLine, 'SecondType');
+            const secondTypeScopes = await getTokenScopesAt(document, multiParamLine, secondTypePos.character);
+            const secondTypeHasScope = secondTypeScopes?.scopes?.some(scope =>
+                scope.includes('entity.name.type')
+            );
+            assert.ok(secondTypeHasScope, `SecondType should be tokenized as a type. Got scopes: ${JSON.stringify(secondTypeScopes?.scopes)}`);
+
+            // Verify bool return type
+            const boolPos = findInLine(document, multiParamLine, 'bool');
+            const boolScopes = await getTokenScopesAt(document, multiParamLine, boolPos.character);
+            const boolHasTypeScope = boolScopes?.scopes?.some(scope =>
+                scope.includes('support.type') || scope.includes('entity.name.type')
+            );
+            assert.ok(boolHasTypeScope, `bool should be tokenized as a type. Got scopes: ${JSON.stringify(boolScopes?.scopes)}`);
+        }
+
+        console.log('✓ Function pointer parameter types test passed');
+    });
 });
