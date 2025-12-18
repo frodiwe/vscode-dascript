@@ -465,13 +465,31 @@ repository:
               1: {name: entity.name.type.dascript}
             end: (?=\>)
       - name: meta.template.dascript
-        begin: \b\<(?!\<)(?=\s*[[:alnum:]_]+\s*)
+        begin: \b\<(?!\<)(?=\s*[[:alnum:]_\(]+\s*)
         beginCaptures:
           1: {name: entity.name.type.dascript}
         end: \>
         patterns:
           - include: '#literals'
           - include: '#keywords'
+          - name: meta.template.function-pointer.dascript
+            begin: \(
+            beginCaptures:
+              0: {name: punctuation.definition.parameters.begin.dascript}
+            end: \)
+            endCaptures:
+              0: {name: punctuation.definition.parameters.end.dascript}
+            patterns:
+              - name: meta.template.function-pointer.parameter.dascript
+                begin: \b([[:alnum:]_]+)\s*\:\s*
+                beginCaptures:
+                  1: {name: variable.parameter.function.dascript}
+                end: (?=\,|\))
+                patterns:
+                  - match: \b([[:alnum:]_]+)\b
+                    name: entity.name.type.dascript
+              - include: '#literals'
+              - include: '#keywords'
           - name: meta.template.argument.variant.dascript
             begin: \b([[:alnum:]_]+)\s*\:\s*([[:alnum:]_]+)\b
             beginCaptures:
