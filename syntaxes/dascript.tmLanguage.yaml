@@ -14,6 +14,7 @@ patterns:
   - include: '#builtin_functions_call'
   - include: '#function_call'
   - include: '#function_no_args'
+  - include: '#ternary_operator'
   - include: '#variable_declaration'
   - include: '#options_specifier'
   - include: '#require_specifier'
@@ -351,35 +352,22 @@ repository:
           0: {name: punctuation.definition.block.end.dascript}
         patterns:
           - include: $self
-  # annotations:
-  #   patterns:
-  #     - name: meta.declaration.annotation.dascript
-  #       # Match '[' but not '[[' - (?: (?<!\[) \[ (?!\[) )
-  #       begin: (((?<!\[|\<\-\s|\:\=\s|\=\s)\[(?!\[))\s*)(\()?
-  #       beginCaptures:
-  #         2: {name: punctuation.definition.annotation.dascript}
-  #         3: {name: storage.type.annotation.dascript}
-  #         4: {name: punctuation.definition.annotation-arguments.begin.bracket.round.dascript}
-  #       end: (\))?(\])
-  #       endCaptures:
-  #         1: {name: punctuation.definition.annotation-arguments.end.bracket.round.dascript}
-  #         2: {name: punctuation.definition.annotation.dascript}
-  #       patterns:
-  #         - include: '#function_call'
-  #         - match: \b([[:alnum:]_]+)\b(?!\s*=\s*)
-  #           name: storage.type.annotation.dascript
-  #         - include: '#strings'
-  #         - include: '#comments'
-  #     - name: meta.declaration.annotation.gen2.dascript
-  #       begin: ((?<!\@)\@[[:alnum:]_]+)
-  #       beginCaptures:
-  #         1: {name: support.function.annotation.dascript}
-  #       end: (?=\=|\n|\s+)
-  #       patterns:
-  #         - include: '#comments'
+  ternary_operator:
+    name: meta.ternary.dascript
+    begin: \?
+    beginCaptures:
+      0: {name: keyword.operator.ternary.dascript}
+    end: (?=\n|\;)
+    patterns:
+      - match: ':'
+        name: keyword.operator.ternary.dascript
+      - include: '#strings'
+      - include: '#literals'
+      - include: '#function_call'
+      - include: '#identifier'
   variable_declaration:
     name: meta.variable.declaration.dascript
-    begin: (?<=[\w\?])\s*\:\s*((?!auto|table|array|iterator|tuple|lambda|block))
+    begin: (?<=[\w])\s*\:\s*((?!auto|table|array|iterator|tuple|lambda|block))
     end: (?:\s*(\=|\s+|\n|\;|\,|\)))
     patterns:
       - include: '#literals'

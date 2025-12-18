@@ -1,21 +1,71 @@
 const assert = require('assert');
 const vscode = require('vscode');
 const path = require('path');
+const fs = require('fs');
+const { suite, test } = require('mocha');
+const vsctm = require('vscode-textmate');
+const oniguruma = require('vscode-oniguruma');
+
+let registry;
+let grammar;
 
 /**
- * Get token scopes at a specific position in the document
+ * Initialize the TextMate registry and load the grammar
+ */
+async function initializeGrammar() {
+    const wasmBin = fs.readFileSync(path.join(require.resolve('vscode-oniguruma'), '../onig.wasm')).buffer;
+    await oniguruma.loadWASM(wasmBin);
+
+    registry = new vsctm.Registry({
+        onigLib: Promise.resolve({
+            createOnigScanner: (sources) => new oniguruma.OnigScanner(sources),
+            createOnigString: (str) => new oniguruma.OnigString(str)
+        }),
+        loadGrammar: async (scopeName) => {
+            if (scopeName === 'source.dascript') {
+                const grammarPath = path.join(__dirname, '../../syntaxes/dascript.tmLanguage.json');
+                const grammarContent = fs.readFileSync(grammarPath, 'utf8');
+                return vsctm.parseRawGrammar(grammarContent, grammarPath);
+            }
+            return null;
+        }
+    });
+
+    grammar = await registry.loadGrammar('source.dascript');
+}
+
+/**
+ * Get token scopes at a specific position in the document using TextMate grammar
  */
 async function getTokenScopesAt(document, line, character) {
-    const position = new vscode.Position(line, character);
+    if (!grammar) {
+        await initializeGrammar();
+    }
 
-    // Get TextMate token scopes (these are what the grammar defines)
-    const scopes = await vscode.commands.executeCommand(
-        'editor.action.inspectTMScopes',
-        document.uri,
-        position
-    );
+    const lineText = document.lineAt(line).text;
 
-    return scopes;
+    // Tokenize all lines up to and including the target line to maintain state
+    let ruleStack = vsctm.INITIAL;
+    for (let i = 0; i <= line; i++) {
+        const currentLineText = document.lineAt(i).text;
+        const result = grammar.tokenizeLine(currentLineText, ruleStack);
+        ruleStack = result.ruleStack;
+
+        if (i === line) {
+            // Find the token at the specified character position
+            for (const token of result.tokens) {
+                if (character >= token.startIndex && character < token.endIndex) {
+                    return { scopes: token.scopes };
+                }
+            }
+            // If character is at the end of line, return last token
+            if (result.tokens.length > 0 && character >= result.tokens[result.tokens.length - 1].endIndex) {
+                return { scopes: result.tokens[result.tokens.length - 1].scopes };
+            }
+        }
+    }
+
+    return { scopes: [] };
 }
 
 /**
