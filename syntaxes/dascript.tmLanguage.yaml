@@ -363,8 +363,12 @@ repository:
         name: keyword.operator.ternary.dascript
       - include: '#strings'
       - include: '#literals'
+      - include: '#builtin_types'
+      - include: '#builtin_functions_call'
       - include: '#function_call'
-      - include: '#identifier'
+      - include: '#ternary_operator'
+      - match: \b([[:alpha:]_][[:alnum:]_]*)\b
+        name: variable.parameter.identifier.dascript
   variable_declaration:
     name: meta.variable.declaration.dascript
     begin: (?<=[\w])\s*\:\s*((?!auto|table|array|iterator|tuple|lambda|block))
