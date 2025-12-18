@@ -5,3 +5,11 @@ def getTernaryValue(condition: bool, trueValue: int, falseValue: int) : int
 
 def getStringValue(count: int) : string
     return count == -1 ? "unlimited" : "{count}"
+
+// Nested ternary operators
+def normalizeAngle(delta: float, ang: float, PI: float, TWO_PI: float) : float
+    return abs(delta) > PI ? ang + (delta > 0.f ? 1.f : -1.f) * TWO_PI : ang
+
+// Complex nested ternary with function calls
+def getStatus(value: int, max: int) : string
+    return value < 0 ? "invalid" : value > max ? "overflow" : "{value}"

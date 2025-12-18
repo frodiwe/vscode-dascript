@@ -218,6 +218,97 @@ suite('daScript Syntax Highlighting Tests', () => {
         console.log('✓ Ternary operator test passed');
     });
 
+    test('Nested ternary operators should highlight all expressions correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/ternary-operators.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Find the line with nested ternary: abs(delta) > PI ? ang + (delta > 0.f ? 1.f : -1.f) * TWO_PI : ang
+        let nestedTernaryLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('abs(delta) > PI ? ang +')) {
+                nestedTernaryLine = i;
+                break;
+            }
+        }
+        assert.ok(nestedTernaryLine >= 0, 'Should find nested ternary operator line');
+
+        const lineText = document.lineAt(nestedTernaryLine).text;
+
+        // Verify 'abs' function call is highlighted
+        const absPos = findInLine(document, nestedTernaryLine, 'abs');
+        const absScopes = await getTokenScopesAt(document, nestedTernaryLine, absPos.character);
+        const isFunction = absScopes?.scopes?.some(scope =>
+            scope.includes('function') || scope.includes('entity.name')
+        );
+        assert.ok(isFunction, `'abs' should be highlighted as a function. Got scopes: ${JSON.stringify(absScopes?.scopes)}`);
+
+        // Find all occurrences of 'ang' in the line
+        const angMatches = [];
+        let index = -1;
+        while ((index = lineText.indexOf('ang', index + 1)) !== -1) {
+            angMatches.push(index);
+        }
+        assert.ok(angMatches.length >= 2, 'Should find at least 2 occurrences of "ang"');
+
+        // Verify the last 'ang' (false branch of outer ternary) is highlighted as identifier/variable
+        const lastAngPos = angMatches[angMatches.length - 1];
+        const lastAngScopes = await getTokenScopesAt(document, nestedTernaryLine, lastAngPos);
+        
+        // Should be highlighted as identifier or variable, not just base scope
+        const hasIdentifierScope = lastAngScopes?.scopes?.some(scope =>
+            scope.includes('variable') || scope.includes('identifier')
+        );
+        const notJustBaseScope = lastAngScopes?.scopes?.length > 1 || hasIdentifierScope;
+        assert.ok(notJustBaseScope, `Last 'ang' should be highlighted as identifier. Got scopes: ${JSON.stringify(lastAngScopes?.scopes)}`);
+
+        // Verify numeric literals in nested ternary are highlighted
+        const floatLiteralPos = lineText.indexOf('0.f');
+        if (floatLiteralPos >= 0) {
+            const floatScopes = await getTokenScopesAt(document, nestedTernaryLine, floatLiteralPos);
+            const isNumeric = floatScopes?.scopes?.some(scope =>
+                scope.includes('constant.numeric')
+            );
+            assert.ok(isNumeric, `'0.f' should be highlighted as numeric literal. Got scopes: ${JSON.stringify(floatScopes?.scopes)}`);
+        }
+
+        // Test another nested ternary: value < 0 ? "invalid" : value > max ? "overflow" : "{value}"
+        let multiNestedLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('"invalid"') && document.lineAt(i).text.includes('"overflow"')) {
+                multiNestedLine = i;
+                break;
+            }
+        }
+
+        if (multiNestedLine >= 0) {
+            // Verify string literals are highlighted
+            const multiLineText = document.lineAt(multiNestedLine).text;
+            const invalidStrPos = multiLineText.indexOf('"invalid"');
+            if (invalidStrPos >= 0) {
+                const invalidScopes = await getTokenScopesAt(document, multiNestedLine, invalidStrPos + 2); // +2 to be inside string
+                const isString = invalidScopes?.scopes?.some(scope => scope.includes('string'));
+                assert.ok(isString, `"invalid" should be highlighted as string. Got scopes: ${JSON.stringify(invalidScopes?.scopes)}`);
+            }
+
+            // Verify the last part (string interpolation) is also highlighted
+            const interpolationPos = multiLineText.indexOf('"{value}"');
+            if (interpolationPos >= 0) {
+                const interpScopes = await getTokenScopesAt(document, multiNestedLine, interpolationPos + 2);
+                const isInterpString = interpScopes?.scopes?.some(scope => scope.includes('string'));
+                assert.ok(isInterpString, `String interpolation should be highlighted. Got scopes: ${JSON.stringify(interpScopes?.scopes)}`);
+            }
+        }
+
+        console.log('✓ Nested ternary operators test passed');
+    });
+
     test('Type annotations with optional types should work', async () => {
         const uri = vscode.Uri.file(
             path.join(__dirname, '../../test/fixtures/optional-types.das')
