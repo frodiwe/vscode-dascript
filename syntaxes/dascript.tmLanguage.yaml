@@ -495,11 +495,13 @@ repository:
               - include: '#literals'
               - include: '#keywords'
           - name: meta.template.argument.variant.dascript
-            begin: \b([[:alnum:]_]+)\s*\:\s*([[:alnum:]_]+)\b
+            begin: \b([[:alnum:]_]+)\s*\:\s*
             beginCaptures:
               1: {name: variable.parameter.variant.identifier.dascript}
-              2: {name: entity.name.type.variant.argument.dascript}
-            end: (?=\;|\>)
+            end: (?=\,|\;|\>)
+            patterns:
+              - match: \b([[:alnum:]_]+)\b
+                name: entity.name.type.variant.argument.dascript
           - name: meta.template.argument.auto.dascript
             begin: \b(auto)\b
             beginCaptures:

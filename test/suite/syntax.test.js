@@ -260,7 +260,7 @@ suite('daScript Syntax Highlighting Tests', () => {
         // Verify the last 'ang' (false branch of outer ternary) is highlighted as identifier/variable
         const lastAngPos = angMatches[angMatches.length - 1];
         const lastAngScopes = await getTokenScopesAt(document, nestedTernaryLine, lastAngPos);
-        
+
         // Should be highlighted as identifier or variable, not just base scope
         const hasIdentifierScope = lastAngScopes?.scopes?.some(scope =>
             scope.includes('variable') || scope.includes('identifier')
@@ -465,7 +465,7 @@ suite('daScript Syntax Highlighting Tests', () => {
                 break;
             }
         }
-        
+
         if (multiParamLine >= 0) {
             // Verify FirstType is tokenized as a type
             const firstTypePos = findInLine(document, multiParamLine, 'FirstType');
@@ -493,5 +493,79 @@ suite('daScript Syntax Highlighting Tests', () => {
         }
 
         console.log('✓ Function pointer parameter types test passed');
+    });
+
+    test('Tuple type fields should highlight field names as variables and types correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/tuple-types.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Find the line with victimNodes : array<tuple< node : NodeId, timeBeforeDamage : float>>
+        let victimNodesLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('victimNodes') && document.lineAt(i).text.includes('timeBeforeDamage')) {
+                victimNodesLine = i;
+                break;
+            }
+        }
+        assert.ok(victimNodesLine >= 0, 'Should find victimNodes declaration line');
+
+        // Verify 'node' field name is highlighted as variable
+        const nodePos = findInLine(document, victimNodesLine, 'node');
+        const nodeScopes = await getTokenScopesAt(document, victimNodesLine, nodePos.character);
+        const nodeIsVariable = nodeScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter')
+        );
+        assert.ok(nodeIsVariable, `'node' should be highlighted as a variable parameter. Got scopes: ${JSON.stringify(nodeScopes?.scopes)}`);
+
+        // Verify 'NodeId' type is highlighted as type
+        const nodeIdPos = findInLine(document, victimNodesLine, 'NodeId');
+        const nodeIdScopes = await getTokenScopesAt(document, victimNodesLine, nodeIdPos.character);
+        const nodeIdIsType = nodeIdScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        assert.ok(nodeIdIsType, `'NodeId' should be highlighted as a type. Got scopes: ${JSON.stringify(nodeIdScopes?.scopes)}`);
+
+        // Verify 'timeBeforeDamage' field name is highlighted as variable
+        const timeBeforeDamagePos = findInLine(document, victimNodesLine, 'timeBeforeDamage');
+        const timeBeforeDamageScopes = await getTokenScopesAt(document, victimNodesLine, timeBeforeDamagePos.character);
+        const timeBeforeDamageIsVariable = timeBeforeDamageScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter')
+        );
+        assert.ok(timeBeforeDamageIsVariable, `'timeBeforeDamage' should be highlighted as a variable parameter. Got scopes: ${JSON.stringify(timeBeforeDamageScopes?.scopes)}`);
+
+        // Verify 'float' type is highlighted as type
+        const floatPos = findInLine(document, victimNodesLine, 'float');
+        const floatScopes = await getTokenScopesAt(document, victimNodesLine, floatPos.character);
+        const floatIsType = floatScopes?.scopes?.some(scope =>
+            scope.includes('support.type') || scope.includes('entity.name.type')
+        );
+        assert.ok(floatIsType, `'float' should be highlighted as a type. Got scopes: ${JSON.stringify(floatScopes?.scopes)}`);
+
+        // Test the simpler position tuple as well
+        let positionLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('var position : tuple<x : float')) {
+                positionLine = i;
+                break;
+            }
+        }
+        assert.ok(positionLine >= 0, 'Should find position declaration line');
+
+        // Verify 'x' field name
+        const xPos = findInLine(document, positionLine, 'x');
+        const xScopes = await getTokenScopesAt(document, positionLine, xPos.character);
+        const xIsVariable = xScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter')
+        );
+        assert.ok(xIsVariable, `'x' should be highlighted as a variable parameter. Got scopes: ${JSON.stringify(xScopes?.scopes)}`);
+
+        console.log('✓ Tuple type fields test passed');
     });
 });
