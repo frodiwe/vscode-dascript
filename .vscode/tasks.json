@@ -31,7 +31,7 @@
     {
       "label": "package",
       "type": "shell",
-      "command": "npx @vscode/vsce package",
+      "command": "npx @vscode/vsce package --out packages/",
       "problemMatcher": [],
       "group": "build",
       "presentation": {
