@@ -1,0 +1,89 @@
+// Test fixture for annotations in daScript
+
+// Structure annotations - appear before struct/class declarations
+[match_copy]
+struct CmdLocate : Cmd {
+    override rtti = "CmdLocate"
+    x : float
+    y : float
+    z : float
+}
+
+[match_as_is]
+struct DataNode {
+    value : int
+    next : DataNode?
+}
+
+// Property/field annotations in classes
+class AnnotationsComponent : Component {
+    // Basic export annotations
+    @export private export_me : int
+    @no_export do_not_export_me : float
+
+    // View and serialize name annotations with string values
+    @view_name="Hello, world!"
+    @serialize_name=hello_world // string without space do not require quotes
+    bye_world : string
+
+    // Hint annotation with quoted string
+    @hint="This is a color field"
+    @color
+    color : float4
+
+    // Collapse annotation
+    @collapse
+    nested_data : SomeStructure
+
+    // Multiple annotations on single field
+    @export
+    @view_name="Position"
+    @hint="Player position in 3D space"
+    position : float3
+}
+
+// More field annotations examples
+class AbstractGameClient : Component {
+    hasLocalServer : bool
+    currentScenarioRoundType : ScenarioRoundType
+    @no_export localClientMessages : array<OnNetMessageCommand>
+
+    @export
+    @view_name="Player Name"
+    playerName : string
+
+    @serialize_name=hp
+    @view_name="Health Points"
+    health : int
+}
+
+// Function annotations
+[deprecated]
+def old_function()
+    pass
+
+// Block annotations - appear after block declaration
+def queryOne(dt:float=1.0f) {
+    testProfile::queryEs() <| $ [es] (var pos:float3&;vel:float3 const) {
+        pos += vel * dt
+    }
+}
+
+// More structure annotations
+[sealed]
+class FinalClass {
+    value : int
+}
+
+// Annotation with arguments in brackets
+[some_annotation(arg1, arg2)]
+struct AnnotatedStruct {
+    field : float
+}
+
+// Multiple annotations on structure
+[match_copy]
+[serializable]
+struct MultiAnnotated {
+    data : int
+}

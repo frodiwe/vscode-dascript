@@ -885,4 +885,108 @@ suite('daScript Syntax Highlighting Tests', () => {
 
         console.log('✓ Table type arguments test passed');
     });
-});
+
+    test('Annotations should be highlighted correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/annotations.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Property annotation @no_export
+        let noExportLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('@no_export localClientMessages')) {
+                noExportLine = i;
+                break;
+            }
+        }
+        assert.ok(noExportLine >= 0, 'Should find @no_export annotation line');
+
+        // Verify 'no_export' is highlighted as a function (annotation name)
+        const noExportPos = findInLine(document, noExportLine, 'no_export');
+        const noExportScopes = await getTokenScopesAt(document, noExportLine, noExportPos.character);
+        const isAnnotation = noExportScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function')
+        );
+        assert.ok(isAnnotation, `no_export should be highlighted as an annotation (function name). Got scopes: ${JSON.stringify(noExportScopes?.scopes)}`);
+
+        // Test 2: Structure annotation [match_copy]
+        let matchCopyLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('[match_copy]')) {
+                matchCopyLine = i;
+                break;
+            }
+        }
+        assert.ok(matchCopyLine >= 0, 'Should find [match_copy] annotation line');
+
+        // Verify 'match_copy' inside brackets is highlighted as annotation
+        const matchCopyPos = findInLine(document, matchCopyLine, 'match_copy');
+        const matchCopyScopes = await getTokenScopesAt(document, matchCopyLine, matchCopyPos.character);
+        const isStructAnnotation = matchCopyScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function')
+        );
+        assert.ok(isStructAnnotation, `match_copy should be highlighted as an annotation. Got scopes: ${JSON.stringify(matchCopyScopes?.scopes)}`);
+
+        // Test 3: Annotation with string value @view_name="Hello, world!"
+        let viewNameLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('@view_name="Hello, world!"')) {
+                viewNameLine = i;
+                break;
+            }
+        }
+        assert.ok(viewNameLine >= 0, 'Should find @view_name annotation line');
+
+        // Verify 'view_name' is highlighted as annotation
+        const viewNamePos = findInLine(document, viewNameLine, 'view_name');
+        const viewNameScopes = await getTokenScopesAt(document, viewNameLine, viewNamePos.character);
+        const isViewNameAnnotation = viewNameScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function')
+        );
+        assert.ok(isViewNameAnnotation, `view_name should be highlighted as an annotation. Got scopes: ${JSON.stringify(viewNameScopes?.scopes)}`);
+
+        // Test 4: Annotation with unquoted value @serialize_name=hello_world
+        let serializeNameLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('@serialize_name=hello_world')) {
+                serializeNameLine = i;
+                break;
+            }
+        }
+        assert.ok(serializeNameLine >= 0, 'Should find @serialize_name annotation line');
+
+        // Verify 'serialize_name' is highlighted as annotation
+        const serializeNamePos = findInLine(document, serializeNameLine, 'serialize_name');
+        const serializeNameScopes = await getTokenScopesAt(document, serializeNameLine, serializeNamePos.character);
+        const isSerializeNameAnnotation = serializeNameScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function')
+        );
+        assert.ok(isSerializeNameAnnotation, `serialize_name should be highlighted as an annotation. Got scopes: ${JSON.stringify(serializeNameScopes?.scopes)}`);
+
+        // Test 5: Multiple annotations on same line
+        let exportLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('@export private export_me')) {
+                exportLine = i;
+                break;
+            }
+        }
+        assert.ok(exportLine >= 0, 'Should find @export annotation line');
+
+        // Verify 'export' is highlighted as annotation
+        const exportPos = findInLine(document, exportLine, 'export');
+        const exportScopes = await getTokenScopesAt(document, exportLine, exportPos.character);
+        const isExportAnnotation = exportScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function')
+        );
+        assert.ok(isExportAnnotation, `export should be highlighted as an annotation. Got scopes: ${JSON.stringify(exportScopes?.scopes)}`);
+
+        console.log('✓ Annotations test passed');
+    });});
