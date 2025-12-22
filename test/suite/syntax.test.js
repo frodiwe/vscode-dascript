@@ -566,7 +566,115 @@ suite('daScript Syntax Highlighting Tests', () => {
         );
         assert.ok(xIsVariable, `'x' should be highlighted as a variable parameter. Got scopes: ${JSON.stringify(xScopes?.scopes)}`);
 
+        // Test tuple in return statement [[tuple<...>]]
+        let returnLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('return [[tuple<x : int, y : int>')) {
+                returnLine = i;
+                break;
+            }
+        }
+        assert.ok(returnLine >= 0, 'Should find return statement with tuple constructor');
+
+        // Verify 'tuple' keyword in return statement is NOT highlighted as annotation
+        const tupleInReturnPos = findInLine(document, returnLine, 'tuple');
+        const tupleInReturnScopes = await getTokenScopesAt(document, returnLine, tupleInReturnPos.character);
+        const tupleIsNotAnnotation = !tupleInReturnScopes?.scopes?.some(scope =>
+            scope.includes('annotation')
+        );
+        const tupleIsKeyword = tupleInReturnScopes?.scopes?.some(scope =>
+            scope.includes('keyword.type')
+        );
+        assert.ok(tupleIsNotAnnotation, `'tuple' in return statement should NOT be highlighted as annotation. Got scopes: ${JSON.stringify(tupleInReturnScopes?.scopes)}`);
+        assert.ok(tupleIsKeyword, `'tuple' in return statement should be highlighted as keyword. Got scopes: ${JSON.stringify(tupleInReturnScopes?.scopes)}`);
+
         console.log('✓ Tuple type fields test passed');
+    });
+
+    test('Lambda type templates should highlight types correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/lambda-types.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Find line with lambda<void>
+        let voidLambdaLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('onSinglePlayer') && document.lineAt(i).text.includes('lambda<void>')) {
+                voidLambdaLine = i;
+                break;
+            }
+        }
+        assert.ok(voidLambdaLine >= 0, 'Should find lambda<void> declaration line');
+
+        // Verify 'void' inside lambda<void> is highlighted as a type
+        const voidPos = findInLine(document, voidLambdaLine, 'void');
+        const voidScopes = await getTokenScopesAt(document, voidLambdaLine, voidPos.character);
+        const voidIsType = voidScopes?.scopes?.some(scope =>
+            scope.includes('support.type') || scope.includes('entity.name.type')
+        );
+        assert.ok(voidIsType, `'void' in lambda<void> should be highlighted as a type. Got scopes: ${JSON.stringify(voidScopes?.scopes)}`);
+
+        // Test 2: Find line with lambda<int>
+        let intLambdaLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('getScore') && document.lineAt(i).text.includes('lambda<int>')) {
+                intLambdaLine = i;
+                break;
+            }
+        }
+        assert.ok(intLambdaLine >= 0, 'Should find lambda<int> declaration line');
+
+        // Verify 'int' inside lambda<int> is highlighted as a type
+        const intPos = findInLine(document, intLambdaLine, 'int');
+        const intScopes = await getTokenScopesAt(document, intLambdaLine, intPos.character);
+        const intIsType = intScopes?.scopes?.some(scope =>
+            scope.includes('support.type') || scope.includes('entity.name.type')
+        );
+        assert.ok(intIsType, `'int' in lambda<int> should be highlighted as a type. Got scopes: ${JSON.stringify(intScopes?.scopes)}`);
+
+        // Test 3: Find line with lambda<float4>
+        let float4LambdaLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('getColor') && document.lineAt(i).text.includes('lambda<float4>')) {
+                float4LambdaLine = i;
+                break;
+            }
+        }
+        assert.ok(float4LambdaLine >= 0, 'Should find lambda<float4> declaration line');
+
+        // Verify 'float4' inside lambda<float4> is highlighted as a type
+        const float4Pos = findInLine(document, float4LambdaLine, 'float4');
+        const float4Scopes = await getTokenScopesAt(document, float4LambdaLine, float4Pos.character);
+        const float4IsType = float4Scopes?.scopes?.some(scope =>
+            scope.includes('support.type') || scope.includes('entity.name.type')
+        );
+        assert.ok(float4IsType, `'float4' in lambda<float4> should be highlighted as a type. Got scopes: ${JSON.stringify(float4Scopes?.scopes)}`);
+
+        // Test 4: Find line with lambda<NodeId> (custom type)
+        let customTypeLambdaLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('getNode') && document.lineAt(i).text.includes('lambda<NodeId>')) {
+                customTypeLambdaLine = i;
+                break;
+            }
+        }
+        assert.ok(customTypeLambdaLine >= 0, 'Should find lambda<NodeId> declaration line');
+
+        // Verify 'NodeId' inside lambda<NodeId> is highlighted as a type
+        const nodeIdPos = findInLine(document, customTypeLambdaLine, 'NodeId');
+        const nodeIdScopes = await getTokenScopesAt(document, customTypeLambdaLine, nodeIdPos.character);
+        const nodeIdIsType = nodeIdScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        assert.ok(nodeIdIsType, `'NodeId' in lambda<NodeId> should be highlighted as a type. Got scopes: ${JSON.stringify(nodeIdScopes?.scopes)}`);
+
+        console.log('✓ Lambda type templates test passed');
     });
 
     test('Syntax in comments should be ignored and only highlighted as comment', async () => {
