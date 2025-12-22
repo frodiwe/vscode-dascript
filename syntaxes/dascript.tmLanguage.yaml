@@ -153,14 +153,11 @@ repository:
             match: \\.
   comments:
     patterns:
-      - name: comment.line.double-slash
-        begin: (\/\/)
-        end: (?=\n)
-        patterns:
-          - match: (\\)\n
-      - name: comment.block
-        begin: (\/\*)
-        end: (\*\/)
+      - name: comment.line.double-slash.dascript
+        match: \/\/.*$
+      - name: comment.block.dascript
+        begin: \/\*
+        end: \*\/
   keyword_arguments:
     begin: \b([[:alpha:]_][[:alnum:]_]*)\s*(=)(?!=)
     beginCaptures:
@@ -237,6 +234,7 @@ repository:
               1: {name: punctuation.definition.arguments.begin.dascript}
             end: (?=\))
             patterns:
+                - include: '#literals'
                 - match: \b([[:alpha:]_][[:alnum:]_]*)(?=\s*[,)=\[])
                   name: variable.parameter.function.argument.dascript
                 - include: '#strings'

@@ -568,4 +568,189 @@ suite('daScript Syntax Highlighting Tests', () => {
 
         console.log('✓ Tuple type fields test passed');
     });
+
+    test('Syntax in comments should be ignored and only highlighted as comment', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/comments.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Find line with commented var declaration
+        let commentedVarLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('// var hitboxNode = NodeId()')) {
+                commentedVarLine = i;
+                break;
+            }
+        }
+        assert.ok(commentedVarLine >= 0, 'Should find line with commented var declaration');
+
+        // Verify 'var' keyword in comment is only highlighted as comment
+        const varPos = findInLine(document, commentedVarLine, 'var');
+        const varScopes = await getTokenScopesAt(document, commentedVarLine, varPos.character);
+        const hasCommentScope = varScopes?.scopes?.some(scope => scope.includes('comment'));
+        const hasNoKeywordScope = !varScopes?.scopes?.some(scope => scope.includes('keyword') || scope.includes('storage.modifier'));
+        assert.ok(hasCommentScope, `'var' in comment should have comment scope. Got scopes: ${JSON.stringify(varScopes?.scopes)}`);
+        assert.ok(hasNoKeywordScope, `'var' in comment should not have keyword scope. Got scopes: ${JSON.stringify(varScopes?.scopes)}`);
+
+        // Test 2: Find line with commented if statement
+        let commentedIfLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('// if (hitbox != "") {')) {
+                commentedIfLine = i;
+                break;
+            }
+        }
+        assert.ok(commentedIfLine >= 0, 'Should find line with commented if statement');
+
+        // Verify 'if' keyword and string in comment are only highlighted as comment
+        const ifPos = findInLine(document, commentedIfLine, 'if');
+        const ifScopes = await getTokenScopesAt(document, commentedIfLine, ifPos.character);
+        const ifHasCommentScope = ifScopes?.scopes?.some(scope => scope.includes('comment'));
+        const ifHasNoKeywordScope = !ifScopes?.scopes?.some(scope => scope.includes('keyword'));
+        assert.ok(ifHasCommentScope, `'if' in comment should have comment scope. Got scopes: ${JSON.stringify(ifScopes?.scopes)}`);
+        assert.ok(ifHasNoKeywordScope, `'if' in comment should not have keyword scope. Got scopes: ${JSON.stringify(ifScopes?.scopes)}`);
+
+        const stringPos = findInLine(document, commentedIfLine, '""');
+        const stringScopes = await getTokenScopesAt(document, commentedIfLine, stringPos.character);
+        const stringHasCommentScope = stringScopes?.scopes?.some(scope => scope.includes('comment'));
+        const stringHasNoStringScope = !stringScopes?.scopes?.some(scope => scope.includes('string.quoted'));
+        assert.ok(stringHasCommentScope, `String in comment should have comment scope. Got scopes: ${JSON.stringify(stringScopes?.scopes)}`);
+        assert.ok(stringHasNoStringScope, `String in comment should not have string scope. Got scopes: ${JSON.stringify(stringScopes?.scopes)}`);
+
+        // Test 3: Block comment with function syntax
+        let blockCommentLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('function someFunc(var self : SomeType')) {
+                blockCommentLine = i;
+                break;
+            }
+        }
+        assert.ok(blockCommentLine >= 0, 'Should find line with function in block comment');
+
+        // Verify 'function' keyword in block comment is only highlighted as comment
+        const functionPos = findInLine(document, blockCommentLine, 'function');
+        const functionScopes = await getTokenScopesAt(document, blockCommentLine, functionPos.character);
+        const functionHasCommentScope = functionScopes?.scopes?.some(scope => scope.includes('comment'));
+        const functionHasNoKeywordScope = !functionScopes?.scopes?.some(scope => scope.includes('keyword'));
+        assert.ok(functionHasCommentScope, `'function' in block comment should have comment scope. Got scopes: ${JSON.stringify(functionScopes?.scopes)}`);
+        assert.ok(functionHasNoKeywordScope, `'function' in block comment should not have keyword scope. Got scopes: ${JSON.stringify(functionScopes?.scopes)}`);
+
+        // Test 4: Verify actual code is NOT highlighted as comment
+        let actualCodeLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text === 'var actualCode = 42') {
+                actualCodeLine = i;
+                break;
+            }
+        }
+        assert.ok(actualCodeLine >= 0, 'Should find actual code line');
+
+        const actualVarPos = findInLine(document, actualCodeLine, 'var');
+        const actualVarScopes = await getTokenScopesAt(document, actualCodeLine, actualVarPos.character);
+        const isNotComment = !actualVarScopes?.scopes?.some(scope => scope.includes('comment'));
+        assert.ok(isNotComment, `'var' in actual code should NOT have comment scope. Got scopes: ${JSON.stringify(actualVarScopes?.scopes)}`);
+
+        console.log('✓ Comments syntax highlighting test passed');
+    });
+
+    test('Boolean literals should always be highlighted as constants', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/boolean-literals.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Boolean in variable assignment
+        let assignmentLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('let isActive = true')) {
+                assignmentLine = i;
+                break;
+            }
+        }
+        assert.ok(assignmentLine >= 0, 'Should find boolean assignment line');
+
+        const truePos1 = findInLine(document, assignmentLine, 'true');
+        const trueScopes1 = await getTokenScopesAt(document, assignmentLine, truePos1.character);
+        const isConstant1 = trueScopes1?.scopes?.some(scope => scope.includes('constant.language'));
+        assert.ok(isConstant1, `'true' in assignment should be constant.language. Got scopes: ${JSON.stringify(trueScopes1?.scopes)}`);
+
+        // Test 2: Boolean in simple function argument
+        let simpleFuncLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('send_message(gameClient, true)')) {
+                simpleFuncLine = i;
+                break;
+            }
+        }
+        assert.ok(simpleFuncLine >= 0, 'Should find simple function call line');
+
+        const truePos2 = findInLine(document, simpleFuncLine, 'true');
+        const trueScopes2 = await getTokenScopesAt(document, simpleFuncLine, truePos2.character);
+        const isConstant2 = trueScopes2?.scopes?.some(scope => scope.includes('constant.language'));
+        assert.ok(isConstant2, `'true' in function argument should be constant.language. Got scopes: ${JSON.stringify(trueScopes2?.scopes)}`);
+
+        // Test 3: Boolean in complex nested function call (the reported issue)
+        let complexFuncLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('), true)')) {
+                complexFuncLine = i;
+                break;
+            }
+        }
+        assert.ok(complexFuncLine >= 0, 'Should find complex function call line');
+
+        const truePos3 = findInLine(document, complexFuncLine, 'true');
+        const trueScopes3 = await getTokenScopesAt(document, complexFuncLine, truePos3.character);
+        const isConstant3 = trueScopes3?.scopes?.some(scope => scope.includes('constant.language'));
+        assert.ok(isConstant3, `'true' in complex nested function call should be constant.language. Got scopes: ${JSON.stringify(trueScopes3?.scopes)}`);
+
+        // Test 4: false literal
+        let falseLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('let isDisabled = false')) {
+                falseLine = i;
+                break;
+            }
+        }
+        assert.ok(falseLine >= 0, 'Should find false assignment line');
+
+        const falsePos = findInLine(document, falseLine, 'false');
+        const falseScopes = await getTokenScopesAt(document, falseLine, falsePos.character);
+        const isFalseConstant = falseScopes?.scopes?.some(scope => scope.includes('constant.language'));
+        assert.ok(isFalseConstant, `'false' should be constant.language. Got scopes: ${JSON.stringify(falseScopes?.scopes)}`);
+
+        // Test 5: null literal
+        let nullLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('let nullValue = null')) {
+                nullLine = i;
+                break;
+            }
+        }
+        assert.ok(nullLine >= 0, 'Should find null assignment line');
+
+        // Find the second occurrence of "null" (the literal, not the variable name)
+        const nullLineText = document.lineAt(nullLine).text;
+        const firstNullIndex = nullLineText.indexOf('null');
+        const secondNullIndex = nullLineText.indexOf('null', firstNullIndex + 1);
+        assert.ok(secondNullIndex >= 0, 'Should find null literal on the line');
+
+        const nullPos = new vscode.Position(nullLine, secondNullIndex);
+        const nullScopes = await getTokenScopesAt(document, nullLine, nullPos.character);
+        const isNullConstant = nullScopes?.scopes?.some(scope => scope.includes('constant.language'));
+        assert.ok(isNullConstant, `'null' should be constant.language. Got scopes: ${JSON.stringify(nullScopes?.scopes)}`);
+
+        console.log('✓ Boolean literals syntax highlighting test passed');
+    });
 });
