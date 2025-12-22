@@ -151,6 +151,53 @@ repository:
         patterns:
           - name: constant.character.escape.dascript
             match: \\.
+  annotations:
+    patterns:
+      # Structure annotations: [match_copy], [match_as_is], [some_annotation(arg1, arg2)], etc.
+      - name: meta.annotation.structure.dascript
+        begin: \[
+        beginCaptures:
+          0: {name: punctuation.definition.annotation.begin.dascript}
+        end: \]
+        endCaptures:
+          0: {name: punctuation.definition.annotation.end.dascript}
+        patterns:
+          # Annotation with arguments: [annotation(arg1, arg2)]
+          - name: meta.annotation.call.dascript
+            begin: \b([[:alpha:]_][[:alnum:]_]*)\s*(\()
+            beginCaptures:
+              1: {name: entity.name.function.annotation.dascript}
+              2: {name: punctuation.definition.arguments.begin.dascript}
+            end: \)
+            endCaptures:
+              0: {name: punctuation.definition.arguments.end.dascript}
+            patterns:
+              - match: \b([[:alpha:]_][[:alnum:]_]*)(?=\s*[,)])
+                name: variable.parameter.function.argument.dascript
+              - include: '#strings'
+              - include: '#literals'
+              - include: $self
+          # Simple annotation name without arguments
+          - match: \b([[:alpha:]_][[:alnum:]_]*)\b
+            name: entity.name.function.annotation.dascript
+      # Property/field annotations: @export, @no_export, @view_name="...", etc.
+      - name: meta.annotation.property.dascript
+        begin: (@)([[:alpha:]_][[:alnum:]_]*)
+        beginCaptures:
+          1: {name: punctuation.definition.annotation.dascript}
+          2: {name: entity.name.function.annotation.dascript}
+        end: (?=\s|$|@|\n|;)
+        patterns:
+          # Handle annotation with = assignment (with or without quotes)
+          - name: meta.annotation.assignment.dascript
+            begin: (=)
+            beginCaptures:
+              1: {name: keyword.operator.assignment.dascript}
+            end: (?=\s|$|@|\n|;)
+            patterns:
+              - include: '#strings'
+              - match: ([[:alnum:]_]+)
+                name: string.unquoted.annotation.dascript
   comments:
     patterns:
       - name: comment.line.double-slash.dascript
