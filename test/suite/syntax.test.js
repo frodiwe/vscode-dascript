@@ -753,4 +753,136 @@ suite('daScript Syntax Highlighting Tests', () => {
 
         console.log('✓ Boolean literals syntax highlighting test passed');
     });
+
+    test('Table type arguments should highlight types correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/table-types.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: table<NodeId, float> in struct
+        let structTableLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('toRespawn : table<NodeId, float>')) {
+                structTableLine = i;
+                break;
+            }
+        }
+        assert.ok(structTableLine >= 0, 'Should find struct with table<NodeId, float>');
+
+        // Verify NodeId is highlighted as a type
+        const nodeIdPos = findInLine(document, structTableLine, 'NodeId');
+        const nodeIdScopes = await getTokenScopesAt(document, structTableLine, nodeIdPos.character);
+        const nodeIdIsType = nodeIdScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        assert.ok(nodeIdIsType, `NodeId in table<NodeId, float> should be highlighted as a type. Got scopes: ${JSON.stringify(nodeIdScopes?.scopes)}`);
+
+        // Verify float is highlighted as a type
+        const floatPos = findInLine(document, structTableLine, 'float');
+        const floatScopes = await getTokenScopesAt(document, structTableLine, floatPos.character);
+        const floatIsType = floatScopes?.scopes?.some(scope =>
+            scope.includes('support.type') || scope.includes('entity.name.type')
+        );
+        assert.ok(floatIsType, `float in table<NodeId, float> should be highlighted as a type. Got scopes: ${JSON.stringify(floatScopes?.scopes)}`);
+
+        // Test 2: table<int, string> with builtin types
+        let builtinTableLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('var simpleTable : table<int, string>')) {
+                builtinTableLine = i;
+                break;
+            }
+        }
+        assert.ok(builtinTableLine >= 0, 'Should find table<int, string> line');
+
+        // Verify int is highlighted as a type
+        const intPos = findInLine(document, builtinTableLine, 'int');
+        const intScopes = await getTokenScopesAt(document, builtinTableLine, intPos.character);
+        const intIsType = intScopes?.scopes?.some(scope =>
+            scope.includes('support.type') || scope.includes('entity.name.type')
+        );
+        assert.ok(intIsType, `int in table<int, string> should be highlighted as a type. Got scopes: ${JSON.stringify(intScopes?.scopes)}`);
+
+        // Verify string is highlighted as a type
+        const stringPos = findInLine(document, builtinTableLine, 'string');
+        const stringScopes = await getTokenScopesAt(document, builtinTableLine, stringPos.character);
+        const stringIsType = stringScopes?.scopes?.some(scope =>
+            scope.includes('support.type') || scope.includes('entity.name.type')
+        );
+        assert.ok(stringIsType, `string in table<int, string> should be highlighted as a type. Got scopes: ${JSON.stringify(stringScopes?.scopes)}`);
+
+        // Test 3: table with custom types
+        let customTableLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('var customTable : table<EntityId, PlayerData>')) {
+                customTableLine = i;
+                break;
+            }
+        }
+        assert.ok(customTableLine >= 0, 'Should find custom table line');
+
+        // Verify EntityId is highlighted as a type
+        const entityIdPos = findInLine(document, customTableLine, 'EntityId');
+        const entityIdScopes = await getTokenScopesAt(document, customTableLine, entityIdPos.character);
+        const entityIdIsType = entityIdScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        assert.ok(entityIdIsType, `EntityId should be highlighted as a type. Got scopes: ${JSON.stringify(entityIdScopes?.scopes)}`);
+
+        // Verify PlayerData is highlighted as a type
+        const playerDataPos = findInLine(document, customTableLine, 'PlayerData');
+        const playerDataScopes = await getTokenScopesAt(document, customTableLine, playerDataPos.character);
+        const playerDataIsType = playerDataScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        assert.ok(playerDataIsType, `PlayerData should be highlighted as a type. Got scopes: ${JSON.stringify(playerDataScopes?.scopes)}`);
+
+        // Test 4: table in function parameter
+        let functionParamLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def processTable(var data : table<NodeId, float3>)')) {
+                functionParamLine = i;
+                break;
+            }
+        }
+        assert.ok(functionParamLine >= 0, 'Should find function with table parameter');
+
+        // Verify float3 is highlighted as a type
+        const float3Pos = findInLine(document, functionParamLine, 'float3');
+        const float3Scopes = await getTokenScopesAt(document, functionParamLine, float3Pos.character);
+        const float3IsType = float3Scopes?.scopes?.some(scope =>
+            scope.includes('support.type') || scope.includes('entity.name.type')
+        );
+        assert.ok(float3IsType, `float3 in function parameter table should be highlighted as a type. Got scopes: ${JSON.stringify(float3Scopes?.scopes)}`);
+
+        // Test 5: nested structures - table<NodeId, array<float>>
+        let nestedLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('var complex : table<NodeId, array<float>>')) {
+                nestedLine = i;
+                break;
+            }
+        }
+        assert.ok(nestedLine >= 0, 'Should find nested structure line');
+
+        // Find the 'float' inside array<float> (not in table<>)
+        const nestedLineText = document.lineAt(nestedLine).text;
+        const arrayFloatIndex = nestedLineText.indexOf('array<float>');
+        assert.ok(arrayFloatIndex >= 0, 'Should find array<float> in line');
+
+        const nestedFloatPos = arrayFloatIndex + 'array<'.length;
+        const nestedFloatScopes = await getTokenScopesAt(document, nestedLine, nestedFloatPos);
+        const nestedFloatIsType = nestedFloatScopes?.scopes?.some(scope =>
+            scope.includes('support.type') || scope.includes('entity.name.type')
+        );
+        assert.ok(nestedFloatIsType, `float in array<float> should be highlighted as a type. Got scopes: ${JSON.stringify(nestedFloatScopes?.scopes)}`);
+
+        console.log('✓ Table type arguments test passed');
+    });
 });
