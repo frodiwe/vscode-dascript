@@ -1,0 +1,28 @@
+// Test fixture for table type declarations
+// Types inside table<> should be highlighted as types
+
+struct Foo {
+    toRespawn : table<NodeId, float>
+}
+
+// Simple table types
+var simpleTable : table<int, string>
+var playerScores : table<NodeId, int>
+var entityHealth : table<NodeId, float>
+
+// Table with custom types
+var customTable : table<EntityId, PlayerData>
+
+// Table in function parameter
+def processTable(var data : table<NodeId, float3>)
+    return
+
+// Array of tables
+var arrayOfTables : array<table<NodeId, int>>
+
+// Nested structures
+var complex : table<NodeId, array<float>>
+
+// Table with builtin types
+var builtins : table<int64, double>
+var mixed : table<uint, bool>

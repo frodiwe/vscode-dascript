@@ -512,6 +512,6 @@ repository:
             begin: \b([[:alnum:]_]+)\b
             beginCaptures:
               1: {name: entity.name.type.dascript}
-            end: (?=\;|\>)
+            end: (?=\,|\;|\>)
             patterns:
               - include: '#keywords'
