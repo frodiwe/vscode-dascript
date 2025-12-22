@@ -189,9 +189,10 @@ repository:
   annotations:
     patterns:
       # Structure annotations: [match_copy], [match_as_is], [some_annotation(arg1, arg2)], etc.
-      # Only match brackets that are preceded by whitespace or start of line (not after identifiers/closing brackets)
+      # Don't match array indexing: arr[0], tm[index], matrix[row][col]
+      # Don't match array literals: [[tuple<...>]]
       - name: meta.annotation.structure.dascript
-        begin: (?<=^|[\s\n\r]|;|{)(\[)(?!\[)
+        begin: (?<![[:alnum:]_\]\)\[])\[(?!\[)(?=\s*[[:alpha:]_])
         beginCaptures:
           1: {name: punctuation.definition.annotation.begin.dascript}
         end: \]
