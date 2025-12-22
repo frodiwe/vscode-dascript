@@ -155,7 +155,7 @@ repository:
     patterns:
       # Structure annotations: [match_copy], [match_as_is], [some_annotation(arg1, arg2)], etc.
       - name: meta.annotation.structure.dascript
-        begin: \[
+        begin: (?<!\[)\[(?!\[)
         beginCaptures:
           0: {name: punctuation.definition.annotation.begin.dascript}
         end: \]
@@ -508,11 +508,14 @@ repository:
         begin: \b(?:(?<=block|lambda)\s*\<\s*)
         end: (?=\(|\>)
         patterns:
+          - include: '#builtin_types'
           - name: meta.template.function.short.dascript
             begin: (?=\<)
             captures:
               1: {name: entity.name.type.dascript}
             end: (?=\>)
+          - match: \b([[:alnum:]_]+)\b
+            name: entity.name.type.dascript
       - name: meta.template.dascript
         begin: \b\<(?!\<)(?=\s*[[:alnum:]_\(]+\s*)
         beginCaptures:
