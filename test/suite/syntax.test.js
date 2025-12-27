@@ -173,6 +173,192 @@ suite('daScript Syntax Highlighting Tests', () => {
         console.log('✓ String interpolation test passed');
     });
 
+    test('Nested interpolated strings should highlight correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/string-interpolation.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Nested string with infinity symbol inside ternary in interpolation
+        let nestedInfinityLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('print("Ammo:') && lineText.includes('"∞"')) {
+                nestedInfinityLine = i;
+                break;
+            }
+        }
+        assert.ok(nestedInfinityLine >= 0, 'Should find line with nested infinity string');
+
+        // Verify the infinity symbol inside the nested string is tokenized as a string
+        const infinityPos = findInLine(document, nestedInfinityLine, '∞');
+        const infinityScopes = await getTokenScopesAt(document, nestedInfinityLine, infinityPos.character);
+        const isInString = infinityScopes?.scopes?.some(scope => scope.includes('string'));
+        assert.ok(isInString, `Nested infinity symbol should be inside a string. Got scopes: ${JSON.stringify(infinityScopes?.scopes)}`);
+
+        // Test 2: "Active"/"Inactive" strings in ternary
+        let activeInactiveLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('"Active"') && lineText.includes('"Inactive"')) {
+                activeInactiveLine = i;
+                break;
+            }
+        }
+        assert.ok(activeInactiveLine >= 0, 'Should find line with Active/Inactive strings');
+
+        const activePos = findInLine(document, activeInactiveLine, 'Active');
+        const activeScopes = await getTokenScopesAt(document, activeInactiveLine, activePos.character);
+        const isActiveInString = activeScopes?.scopes?.some(scope => scope.includes('string'));
+        assert.ok(isActiveInString, `"Active" should be inside a string. Got scopes: ${JSON.stringify(activeScopes?.scopes)}`);
+
+        // Test 3: Nested interpolation with multiple levels
+        let multiLevelLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('"positive: {x}"')) {
+                multiLevelLine = i;
+                break;
+            }
+        }
+        assert.ok(multiLevelLine >= 0, 'Should find line with multi-level interpolation');
+
+        const positivePos = findInLine(document, multiLevelLine, 'positive');
+        const positiveScopes = await getTokenScopesAt(document, multiLevelLine, positivePos.character);
+        const isPositiveInString = positiveScopes?.scopes?.some(scope => scope.includes('string'));
+        assert.ok(isPositiveInString, `"positive" should be inside a string. Got scopes: ${JSON.stringify(positiveScopes?.scopes)}`);
+
+        // Test 4: Multiple ternaries with nested strings
+        let multiTernaryLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('Health:') && lineText.includes('Shield:')) {
+                multiTernaryLine = i;
+                break;
+            }
+        }
+        assert.ok(multiTernaryLine >= 0, 'Should find line with multiple ternaries');
+
+        // Verify both infinity symbols are in strings
+        const healthInfinityMatch = document.lineAt(multiTernaryLine).text.indexOf('? "∞"');
+        assert.ok(healthInfinityMatch >= 0, 'Should find health infinity');
+        const healthInfinityScopes = await getTokenScopesAt(document, multiTernaryLine, healthInfinityMatch + 3);
+        const isHealthInfinityInString = healthInfinityScopes?.scopes?.some(scope => scope.includes('string'));
+        assert.ok(isHealthInfinityInString, `Health infinity should be inside a string. Got scopes: ${JSON.stringify(healthInfinityScopes?.scopes)}`);
+
+        // Test 5: Deeply nested case
+        let deepNestedLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('"inner"') && lineText.includes('"middle"') && lineText.includes('"outer"')) {
+                deepNestedLine = i;
+                break;
+            }
+        }
+        assert.ok(deepNestedLine >= 0, 'Should find line with deeply nested strings');
+
+        const innerPos = findInLine(document, deepNestedLine, 'inner');
+        const innerScopes = await getTokenScopesAt(document, deepNestedLine, innerPos.character);
+        const isInnerInString = innerScopes?.scopes?.some(scope => scope.includes('string'));
+        assert.ok(isInnerInString, `"inner" should be inside a string. Got scopes: ${JSON.stringify(innerScopes?.scopes)}`);
+
+        console.log('✓ Nested interpolated strings test passed');
+    });
+
+    test('Multiline string interpolation should highlight correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/string-interpolation.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Find the line with multiline string start
+        let multilineStartLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('[Item Equipment] initial_loadout_item removed')) {
+                multilineStartLine = i;
+                break;
+            }
+        }
+        assert.ok(multilineStartLine >= 0, 'Should find line with multiline string start');
+
+        // Verify the opening quote starts a string
+        const openQuotePos = findInLine(document, multilineStartLine, '"[Item Equipment]');
+        const openQuoteScopes = await getTokenScopesAt(document, multilineStartLine, openQuotePos.character + 1);
+        const isStartInString = openQuoteScopes?.scopes?.some(scope => scope.includes('string'));
+        assert.ok(isStartInString, `Start of multiline string should be in string scope. Got scopes: ${JSON.stringify(openQuoteScopes?.scopes)}`);
+
+        // Find the next line with interpolation
+        const nextLine = multilineStartLine + 1;
+        const nextLineText = document.lineAt(nextLine).text;
+        assert.ok(nextLineText.includes('itemEid='), 'Next line should have itemEid interpolation');
+
+        // Verify 'itemEid=' is inside a string (before the interpolation starts)
+        const itemEidPos = findInLine(document, nextLine, 'itemEid=');
+        const itemEidScopes = await getTokenScopesAt(document, nextLine, itemEidPos.character);
+        const isItemEidInString = itemEidScopes?.scopes?.some(scope => scope.includes('string'));
+        assert.ok(isItemEidInString, `'itemEid=' should be inside a string. Got scopes: ${JSON.stringify(itemEidScopes?.scopes)}`);
+
+        // Verify the interpolation content is recognized
+        const getEntityPos = findInLine(document, nextLine, 'get_entity_info');
+        const getEntityScopes = await getTokenScopesAt(document, nextLine, getEntityPos.character);
+        const isInInterpolation = getEntityScopes?.scopes?.some(scope => 
+            scope.includes('meta.interpolation') || scope.includes('meta.embedded')
+        );
+        assert.ok(isInInterpolation, `Function call inside interpolation should be in interpolation scope. Got scopes: ${JSON.stringify(getEntityScopes?.scopes)}`);
+
+        // Find the third line with second interpolation
+        const thirdLine = multilineStartLine + 2;
+        const thirdLineText = document.lineAt(thirdLine).text;
+        assert.ok(thirdLineText.includes('reEid='), 'Third line should have reEid interpolation');
+
+        // Verify 'reEid=' is inside a string
+        const reEidPos = findInLine(document, thirdLine, 'reEid=');
+        const reEidScopes = await getTokenScopesAt(document, thirdLine, reEidPos.character);
+        const isReEidInString = reEidScopes?.scopes?.some(scope => scope.includes('string'));
+        assert.ok(isReEidInString, `'reEid=' should be inside a string. Got scopes: ${JSON.stringify(reEidScopes?.scopes)}`);
+
+        // Test another multiline case with Status/Health/Shield
+        let statusHealthLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('let message = "Status:')) {
+                statusHealthLine = i;
+                break;
+            }
+        }
+        assert.ok(statusHealthLine >= 0, 'Should find line with Status multiline string');
+
+        // Verify 'Health:' on the next line is in a string
+        const healthLine = statusHealthLine + 1;
+        const healthPos = findInLine(document, healthLine, 'Health:');
+        const healthScopes = await getTokenScopesAt(document, healthLine, healthPos.character);
+        const isHealthInString = healthScopes?.scopes?.some(scope => scope.includes('string'));
+        assert.ok(isHealthInString, `'Health:' should be inside a string. Got scopes: ${JSON.stringify(healthScopes?.scopes)}`);
+
+        // Verify interpolation on Health line works
+        const hpMatch = document.lineAt(healthLine).text.indexOf('{hp}');
+        if (hpMatch >= 0) {
+            const hpScopes = await getTokenScopesAt(document, healthLine, hpMatch + 1);
+            const isHpInInterpolation = hpScopes?.scopes?.some(scope => 
+                scope.includes('meta.interpolation') || scope.includes('punctuation.definition.interpolation')
+            );
+            assert.ok(isHpInInterpolation, `'{hp}' should be in interpolation scope. Got scopes: ${JSON.stringify(hpScopes?.scopes)}`);
+        }
+
+        console.log('✓ Multiline string interpolation test passed');
+    });
+
     test('Ternary operator colon should not be detected as type declaration', async () => {
         const uri = vscode.Uri.file(
             path.join(__dirname, '../../test/fixtures/ternary-operators.das')
@@ -336,7 +522,7 @@ suite('daScript Syntax Highlighting Tests', () => {
             const typePos = findInLine(document, optionalLine, typeName);
             const typeScopes = await getTokenScopesAt(document, optionalLine, typePos.character);
             const hasTypeScope = typeScopes?.scopes?.some(scope =>
-                scope.includes('storage.type') || scope.includes('entity.name.type')
+                scope.includes('storage.type') || scope.includes('entity.name.type') || scope.includes('support.type')
             );
             assert.ok(hasTypeScope, `${typeName} should be tokenized as a type. Got scopes: ${JSON.stringify(typeScopes?.scopes)}`);
         }
@@ -494,6 +680,240 @@ suite('daScript Syntax Highlighting Tests', () => {
 
         console.log('✓ Function pointer parameter types test passed');
     });
+
+    test('Function return type annotations should highlight correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/function-return-types.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Basic function with return type annotation (no parameters)
+        // def extractData : array<uint8>
+        let extractDataLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def extractData : array<uint8>')) {
+                extractDataLine = i;
+                break;
+            }
+        }
+        assert.ok(extractDataLine >= 0, 'Should find extractData function declaration');
+
+        // Verify 'extractData' is highlighted as a function name
+        const extractDataPos = findInLine(document, extractDataLine, 'extractData');
+        const extractDataScopes = await getTokenScopesAt(document, extractDataLine, extractDataPos.character);
+        const isFunctionName = extractDataScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function')
+        );
+        assert.ok(isFunctionName, `'extractData' should be highlighted as a function name. Got scopes: ${JSON.stringify(extractDataScopes?.scopes)}`);
+
+        // Verify 'array' in return type is highlighted as a type keyword
+        const arrayPos = findInLine(document, extractDataLine, 'array');
+        const arrayScopes = await getTokenScopesAt(document, extractDataLine, arrayPos.character);
+        const isArrayType = arrayScopes?.scopes?.some(scope =>
+            scope.includes('keyword.type') || scope.includes('entity.name.type')
+        );
+        assert.ok(isArrayType, `'array' should be highlighted as a type. Got scopes: ${JSON.stringify(arrayScopes?.scopes)}`);
+
+        // Verify 'uint8' is highlighted as a type
+        const uint8Pos = findInLine(document, extractDataLine, 'uint8');
+        const uint8Scopes = await getTokenScopesAt(document, extractDataLine, uint8Pos.character);
+        const isUint8Type = uint8Scopes?.scopes?.some(scope =>
+            scope.includes('support.type') || scope.includes('entity.name.type')
+        );
+        assert.ok(isUint8Type, `'uint8' should be highlighted as a type. Got scopes: ${JSON.stringify(uint8Scopes?.scopes)}`);
+
+        // Test 2: Function with parameters and return type
+        // def processData(input : string) : array<int>
+        let processDataLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def processData(input : string) : array<int>')) {
+                processDataLine = i;
+                break;
+            }
+        }
+        assert.ok(processDataLine >= 0, 'Should find processData function declaration');
+
+        // Verify 'processData' is highlighted as a function name
+        const processDataPos = findInLine(document, processDataLine, 'processData');
+        const processDataScopes = await getTokenScopesAt(document, processDataLine, processDataPos.character);
+        const isProcessDataFunction = processDataScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function')
+        );
+        assert.ok(isProcessDataFunction, `'processData' should be highlighted as a function name. Got scopes: ${JSON.stringify(processDataScopes?.scopes)}`);
+
+        // Test 3: Function with complex return type (table)
+        // def getMapping : table<string; int>
+        let getMappingLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def getMapping : table<string; int>')) {
+                getMappingLine = i;
+                break;
+            }
+        }
+        assert.ok(getMappingLine >= 0, 'Should find getMapping function declaration');
+
+        // Verify 'getMapping' is highlighted as a function name
+        const getMappingPos = findInLine(document, getMappingLine, 'getMapping');
+        const getMappingScopes = await getTokenScopesAt(document, getMappingLine, getMappingPos.character);
+        const isGetMappingFunction = getMappingScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function')
+        );
+        assert.ok(isGetMappingFunction, `'getMapping' should be highlighted as a function name. Got scopes: ${JSON.stringify(getMappingScopes?.scopes)}`);
+
+        // Verify 'table' is highlighted as a type keyword
+        const tablePos = findInLine(document, getMappingLine, 'table');
+        const tableScopes = await getTokenScopesAt(document, getMappingLine, tablePos.character);
+        const isTableType = tableScopes?.scopes?.some(scope =>
+            scope.includes('keyword.type') || scope.includes('entity.name.type')
+        );
+        assert.ok(isTableType, `'table' should be highlighted as a type. Got scopes: ${JSON.stringify(tableScopes?.scopes)}`);
+
+        // Test 4: Function with optional return type
+        // def findItem(id : int) : Item?
+        let findItemLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def findItem(id : int) : Item?')) {
+                findItemLine = i;
+                break;
+            }
+        }
+        assert.ok(findItemLine >= 0, 'Should find findItem function declaration');
+
+        // Verify 'findItem' is highlighted as a function name
+        const findItemPos = findInLine(document, findItemLine, 'findItem');
+        const findItemScopes = await getTokenScopesAt(document, findItemLine, findItemPos.character);
+        const isFindItemFunction = findItemScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function')
+        );
+        assert.ok(isFindItemFunction, `'findItem' should be highlighted as a function name. Got scopes: ${JSON.stringify(findItemScopes?.scopes)}`);
+
+        // Verify 'Item' in return type is highlighted as a type
+        // Note: There are two occurrences of "Item" - one in "findItem" and one in ": Item?"
+        // We want the second one
+        const line = document.lineAt(findItemLine);
+        const firstItemIndex = line.text.indexOf('Item');
+        const secondItemIndex = line.text.indexOf('Item', firstItemIndex + 1);
+        assert.ok(secondItemIndex > 0, 'Should find second occurrence of Item in return type');
+        
+        const itemPos = new vscode.Position(findItemLine, secondItemIndex);
+        const itemScopes = await getTokenScopesAt(document, findItemLine, itemPos.character);
+        const isItemType = itemScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type') || scope.includes('storage.type')
+        );
+        assert.ok(isItemType, `'Item' in return type should be highlighted as a type. Got scopes: ${JSON.stringify(itemScopes?.scopes)}`);
+
+        // Test 5: Function with var parameters
+        // def public serialize(var arch : Archive; var value : auto(TT)&)
+        let serializeLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def public serialize(var arch : Archive')) {
+                serializeLine = i;
+                break;
+            }
+        }
+        assert.ok(serializeLine >= 0, 'Should find serialize function declaration');
+
+        // Verify first 'var' is highlighted as a storage modifier, not a type
+        const firstVarPos = findInLine(document, serializeLine, 'var');
+        const firstVarScopes = await getTokenScopesAt(document, serializeLine, firstVarPos.character);
+        const isVarKeyword = firstVarScopes?.scopes?.some(scope =>
+            scope.includes('storage.modifier')
+        );
+        const isNotVarType = !firstVarScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        assert.ok(isVarKeyword && isNotVarType, `First 'var' should be highlighted as storage modifier, not type. Got scopes: ${JSON.stringify(firstVarScopes?.scopes)}`);
+
+        // Verify 'Archive' is highlighted as a type
+        const archivePos = findInLine(document, serializeLine, 'Archive');
+        const archiveScopes = await getTokenScopesAt(document, serializeLine, archivePos.character);
+        const isArchiveType = archiveScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type') || scope.includes('storage.type')
+        );
+        assert.ok(isArchiveType, `'Archive' should be highlighted as a type. Got scopes: ${JSON.stringify(archiveScopes?.scopes)}`);
+
+        // Verify second 'var' (before 'value') is also a storage modifier
+        const lineText = document.lineAt(serializeLine).text;
+        const firstVarIndex = lineText.indexOf('var');
+        const secondVarIndex = lineText.indexOf('var', firstVarIndex + 1);
+        assert.ok(secondVarIndex > 0, 'Should find second occurrence of var');
+        
+        const secondVarPos = new vscode.Position(serializeLine, secondVarIndex);
+        const secondVarScopes = await getTokenScopesAt(document, serializeLine, secondVarPos.character);
+        const isSecondVarKeyword = secondVarScopes?.scopes?.some(scope =>
+            scope.includes('storage.modifier')
+        );
+        const isNotSecondVarType = !secondVarScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        assert.ok(isSecondVarKeyword && isNotSecondVarType, `Second 'var' should be highlighted as storage modifier, not type. Got scopes: ${JSON.stringify(secondVarScopes?.scopes)}`);
+
+        // Test 6: Function with auto types in parameters
+        // def public serialize2(var arch : Archive; var value : auto(TT)[])
+        let serialize2Line = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def public serialize2(var arch : Archive; var value : auto(TT)[]')) {
+                serialize2Line = i;
+                break;
+            }
+        }
+        assert.ok(serialize2Line >= 0, 'Should find serialize2 function declaration');
+
+        // Verify 'auto' is highlighted as a type keyword, not a regular type
+        const autoPos = findInLine(document, serialize2Line, 'auto');
+        const autoScopes = await getTokenScopesAt(document, serialize2Line, autoPos.character);
+        const isAutoKeyword = autoScopes?.scopes?.some(scope =>
+            scope.includes('support.type.auto')
+        );
+        // Make sure it's not just treated as entity.name.type without the .auto specificity
+        const hasAutoSpecificScope = autoScopes?.scopes?.some(scope =>
+            scope.includes('auto')
+        );
+        assert.ok(isAutoKeyword || hasAutoSpecificScope, `'auto' should be highlighted as auto type keyword. Got scopes: ${JSON.stringify(autoScopes?.scopes)}`);
+
+        // Test 7: Function with no spaces around colons in parameters
+        // def public serialize3(var arch:Archive; var value:auto(TT)&)
+        let serialize3Line = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def public serialize3(var arch:Archive')) {
+                serialize3Line = i;
+                break;
+            }
+        }
+        assert.ok(serialize3Line >= 0, 'Should find serialize3 function declaration');
+
+        // Verify 'value' parameter name is NOT highlighted as a function
+        const valuePos = findInLine(document, serialize3Line, 'value');
+        const valueScopes = await getTokenScopesAt(document, serialize3Line, valuePos.character);
+        const isNotFunction = !valueScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function') && !scope.includes('variable') && !scope.includes('parameter')
+        );
+        assert.ok(isNotFunction, `'value' should not be highlighted as a function call. Got scopes: ${JSON.stringify(valueScopes?.scopes)}`);
+
+        // Verify 'auto' after value: is highlighted as auto type
+        const lineText3 = document.lineAt(serialize3Line).text;
+        const valueIndex = lineText3.indexOf('value');
+        const autoAfterValueIndex = lineText3.indexOf('auto', valueIndex);
+        assert.ok(autoAfterValueIndex > valueIndex, 'Should find auto after value');
+        
+        const autoAfterValuePos = new vscode.Position(serialize3Line, autoAfterValueIndex);
+        const autoAfterValueScopes = await getTokenScopesAt(document, serialize3Line, autoAfterValuePos.character);
+        const isAutoType = autoAfterValueScopes?.scopes?.some(scope =>
+            scope.includes('support.type') || scope.includes('auto')
+        );
+        const isNotFunctionScope = !autoAfterValueScopes?.scopes?.some(scope =>
+            scope.includes('meta.function-call')
+        );
+        assert.ok(isAutoType && isNotFunctionScope, `'auto' after 'value:' should be highlighted as type, not function. Got scopes: ${JSON.stringify(autoAfterValueScopes?.scopes)}`);
+
+        console.log('✓ Function return type annotations test passed');
+    });
+
 
     test('Tuple type fields should highlight field names as variables and types correctly', async () => {
         const uri = vscode.Uri.file(
@@ -765,6 +1185,84 @@ suite('daScript Syntax Highlighting Tests', () => {
         assert.ok(isNotComment, `'var' in actual code should NOT have comment scope. Got scopes: ${JSON.stringify(actualVarScopes?.scopes)}`);
 
         console.log('✓ Comments syntax highlighting test passed');
+    });
+
+    test('Comments in function return types should be highlighted as comments', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/function-comments.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Find line with function definition and trailing comment
+        let writeDefLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def abstract write') && document.lineAt(i).text.includes('//! Write binary data')) {
+                writeDefLine = i;
+                break;
+            }
+        }
+        assert.ok(writeDefLine >= 0, 'Should find def abstract write line');
+
+        // Verify the return type 'bool' is highlighted as a type
+        const boolPos = findInLine(document, writeDefLine, 'bool');
+        const boolScopes = await getTokenScopesAt(document, writeDefLine, boolPos.character);
+        const isBoolType = boolScopes?.scopes?.some(scope => 
+            scope.includes('entity.name.type') || scope.includes('support.type')
+        );
+        assert.ok(isBoolType, `'bool' should be highlighted as a type. Got scopes: ${JSON.stringify(boolScopes?.scopes)}`);
+
+        // Verify the comment '//! Write binary data' is highlighted as a comment
+        const commentPos = findInLine(document, writeDefLine, '//!');
+        const commentScopes = await getTokenScopesAt(document, writeDefLine, commentPos.character);
+        const isComment = commentScopes?.scopes?.some(scope => scope.includes('comment'));
+        const isNotType = !commentScopes?.scopes?.some(scope => scope.includes('entity.name.type') && !scope.includes('comment'));
+        assert.ok(isComment, `'//!' should be highlighted as a comment. Got scopes: ${JSON.stringify(commentScopes?.scopes)}`);
+        assert.ok(isNotType, `'//!' should NOT be highlighted as a type. Got scopes: ${JSON.stringify(commentScopes?.scopes)}`);
+
+        // Test 2: Find another function with comment
+        let readDefLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def read') && document.lineAt(i).text.includes('//! Read data')) {
+                readDefLine = i;
+                break;
+            }
+        }
+        assert.ok(readDefLine >= 0, 'Should find def read line');
+
+        // Verify return type 'int' is highlighted correctly
+        const intPos = findInLine(document, readDefLine, 'int');
+        const intScopes = await getTokenScopesAt(document, readDefLine, intPos.character);
+        const isIntType = intScopes?.scopes?.some(scope => scope.includes('entity.name.type') || scope.includes('support.type'));
+        assert.ok(isIntType, `'int' should be highlighted as a type. Got scopes: ${JSON.stringify(intScopes?.scopes)}`);
+
+        // Verify text "Read data" in comment is highlighted as comment
+        const readDataPos = findInLine(document, readDefLine, 'Read data');
+        const readDataScopes = await getTokenScopesAt(document, readDefLine, readDataPos.character);
+        const isReadDataComment = readDataScopes?.scopes?.some(scope => scope.includes('comment'));
+        assert.ok(isReadDataComment, `'Read data' should be highlighted as a comment. Got scopes: ${JSON.stringify(readDataScopes?.scopes)}`);
+
+        // Test 3: Function with block comment
+        let processDefLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def process') && document.lineAt(i).text.includes('/* Process array data */')) {
+                processDefLine = i;
+                break;
+            }
+        }
+        assert.ok(processDefLine >= 0, 'Should find def process line');
+
+        // Verify block comment is highlighted as comment
+        const blockCommentPos = findInLine(document, processDefLine, '/* Process');
+        const blockCommentScopes = await getTokenScopesAt(document, processDefLine, blockCommentPos.character);
+        const isBlockComment = blockCommentScopes?.scopes?.some(scope => scope.includes('comment'));
+        assert.ok(isBlockComment, `Block comment should be highlighted as a comment. Got scopes: ${JSON.stringify(blockCommentScopes?.scopes)}`);
+
+        console.log('✓ Function return type comments test passed');
     });
 
     test('Boolean literals should always be highlighted as constants', async () => {
@@ -1096,5 +1594,553 @@ suite('daScript Syntax Highlighting Tests', () => {
         );
         assert.ok(isExportAnnotation, `export should be highlighted as an annotation. Got scopes: ${JSON.stringify(exportScopes?.scopes)}`);
 
+        // Test 6: Call macro annotation [call_macro(name="yield_from")]
+        let callMacroLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('[call_macro(name="yield_from")]')) {
+                callMacroLine = i;
+                break;
+            }
+        }
+        assert.ok(callMacroLine >= 0, 'Should find [call_macro] annotation line');
+
+        // Verify 'call_macro' is highlighted as annotation function, NOT as entity.name.type
+        const callMacroPos = findInLine(document, callMacroLine, 'call_macro');
+        const callMacroScopes = await getTokenScopesAt(document, callMacroLine, callMacroPos.character);
+        const isCallMacroAnnotation = callMacroScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function.annotation')
+        );
+        const isNotType = !callMacroScopes?.scopes?.some(scope =>
+            scope === 'entity.name.type.dascript'
+        );
+        assert.ok(isCallMacroAnnotation, `call_macro should be highlighted as entity.name.function.annotation. Got scopes: ${JSON.stringify(callMacroScopes?.scopes)}`);
+        assert.ok(isNotType, `call_macro should NOT be highlighted as entity.name.type.dascript. Got scopes: ${JSON.stringify(callMacroScopes?.scopes)}`);
+
+        // Verify the 'name' parameter inside call_macro
+        const nameParamPos = findInLine(document, callMacroLine, 'name');
+        const nameParamScopes = await getTokenScopesAt(document, callMacroLine, nameParamPos.character);
+        const isNameParam = nameParamScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter')
+        );
+        assert.ok(isNameParam, `'name' parameter should be highlighted as variable.parameter. Got scopes: ${JSON.stringify(nameParamScopes?.scopes)}`);
+
+        // Test 7: Another call macro [call_macro(name="co_continue")]
+        let coContinueLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('[call_macro(name="co_continue")]')) {
+                coContinueLine = i;
+                break;
+            }
+        }
+        assert.ok(coContinueLine >= 0, 'Should find co_continue call_macro annotation');
+
+        const coContinueCallMacroPos = findInLine(document, coContinueLine, 'call_macro');
+        const coContinueScopes = await getTokenScopesAt(document, coContinueLine, coContinueCallMacroPos.character);
+        const isCoContinueAnnotation = coContinueScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function.annotation')
+        );
+        assert.ok(isCoContinueAnnotation, `call_macro in co_continue should be highlighted as annotation. Got scopes: ${JSON.stringify(coContinueScopes?.scopes)}`);
+
         console.log('✓ Annotations test passed');
+    });
+
+    test('Function default parameters should highlight types correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/default-parameters.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Function with default string parameter
+        // def public assert_once(expr : bool; message : string = "sdf")
+        let assertOnceLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def public assert_once(expr : bool; message : string = "sdf")')) {
+                assertOnceLine = i;
+                break;
+            }
+        }
+        assert.ok(assertOnceLine >= 0, 'Should find assert_once function declaration');
+
+        // Verify 'string' in default parameter is highlighted as a type
+        // Find the second occurrence of 'string' (after message :)
+        const lineText = document.lineAt(assertOnceLine).text;
+        const stringIndex = lineText.indexOf('string');
+        assert.ok(stringIndex > 0, 'Should find string type');
+        
+        const stringPos = new vscode.Position(assertOnceLine, stringIndex);
+        const stringScopes = await getTokenScopesAt(document, assertOnceLine, stringPos.character);
+        const isStringType = stringScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type') || scope.includes('support.type')
+        );
+        assert.ok(isStringType, `'string' should be highlighted as a type. Got scopes: ${JSON.stringify(stringScopes?.scopes)}`);
+
+        // Verify 'bool' is also highlighted as a type
+        const boolPos = findInLine(document, assertOnceLine, 'bool');
+        const boolScopes = await getTokenScopesAt(document, assertOnceLine, boolPos.character);
+        const isBoolType = boolScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type') || scope.includes('support.type')
+        );
+        assert.ok(isBoolType, `'bool' should be highlighted as a type. Got scopes: ${JSON.stringify(boolScopes?.scopes)}`);
+
+        // Verify the default value "sdf" is highlighted as a string
+        const sdfPos = findInLine(document, assertOnceLine, 'sdf');
+        const sdfScopes = await getTokenScopesAt(document, assertOnceLine, sdfPos.character);
+        const isSdfString = sdfScopes?.scopes?.some(scope =>
+            scope.includes('string')
+        );
+        assert.ok(isSdfString, `'sdf' should be highlighted as a string. Got scopes: ${JSON.stringify(sdfScopes?.scopes)}`);
+
+        // Test 2: Function with multiple default parameters
+        // def public log_message(level : int = 1; text : string = "default"; verbose : bool = false)
+        let logMessageLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def public log_message(level : int = 1')) {
+                logMessageLine = i;
+                break;
+            }
+        }
+        assert.ok(logMessageLine >= 0, 'Should find log_message function declaration');
+
+        // Verify 'int' is highlighted as a type
+        const intPos = findInLine(document, logMessageLine, 'int');
+        const intScopes = await getTokenScopesAt(document, logMessageLine, intPos.character);
+        const isIntType = intScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type') || scope.includes('support.type')
+        );
+        assert.ok(isIntType, `'int' should be highlighted as a type. Got scopes: ${JSON.stringify(intScopes?.scopes)}`);
+
+        // Verify 'string' (second parameter) is highlighted as a type
+        const logLineText = document.lineAt(logMessageLine).text;
+        const stringInLogIndex = logLineText.indexOf('string');
+        assert.ok(stringInLogIndex > 0, 'Should find string type in log_message');
+        
+        const stringInLogPos = new vscode.Position(logMessageLine, stringInLogIndex);
+        const stringInLogScopes = await getTokenScopesAt(document, logMessageLine, stringInLogPos.character);
+        const isStringInLogType = stringInLogScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type') || scope.includes('support.type')
+        );
+        assert.ok(isStringInLogType, `'string' in log_message should be highlighted as a type. Got scopes: ${JSON.stringify(stringInLogScopes?.scopes)}`);
+
+        // Test 3: Function with default numeric parameters
+        // def calculate(x : float = 1.0; y : float = 2.0) : float
+        let calculateLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def calculate(x : float = 1.0')) {
+                calculateLine = i;
+                break;
+            }
+        }
+        assert.ok(calculateLine >= 0, 'Should find calculate function declaration');
+
+        // Verify first 'float' (parameter type) is highlighted as a type
+        const floatPos = findInLine(document, calculateLine, 'float');
+        const floatScopes = await getTokenScopesAt(document, calculateLine, floatPos.character);
+        const isFloatType = floatScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type') || scope.includes('support.type')
+        );
+        assert.ok(isFloatType, `'float' parameter type should be highlighted as a type. Got scopes: ${JSON.stringify(floatScopes?.scopes)}`);
+
+        // Test 4: Function with mixed default and non-default parameters
+        // def process(name : string; age : int = 18; active : bool = true)
+        let processLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def process(name : string; age : int = 18')) {
+                processLine = i;
+                break;
+            }
+        }
+        assert.ok(processLine >= 0, 'Should find process function declaration');
+
+        // Verify 'string' (non-default parameter) is highlighted as a type
+        const processLineText = document.lineAt(processLine).text;
+        const stringInProcessIndex = processLineText.indexOf('string');
+        assert.ok(stringInProcessIndex > 0, 'Should find string type in process');
+        
+        const stringInProcessPos = new vscode.Position(processLine, stringInProcessIndex);
+        const stringInProcessScopes = await getTokenScopesAt(document, processLine, stringInProcessPos.character);
+        const isStringInProcessType = stringInProcessScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type') || scope.includes('support.type')
+        );
+        assert.ok(isStringInProcessType, `'string' in process should be highlighted as a type. Got scopes: ${JSON.stringify(stringInProcessScopes?.scopes)}`);
+
+        // Verify 'int' with default value is highlighted as a type
+        const intInProcessPos = findInLine(document, processLine, 'int');
+        const intInProcessScopes = await getTokenScopesAt(document, processLine, intInProcessPos.character);
+        const isIntInProcessType = intInProcessScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type') || scope.includes('support.type')
+        );
+        assert.ok(isIntInProcessType, `'int' in process should be highlighted as a type. Got scopes: ${JSON.stringify(intInProcessScopes?.scopes)}`);
+
+        console.log('✓ Function default parameters test passed');
+    });
+
+    test('Template function variable names should highlight as types', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/template-functions.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Find the line with template variables: for $i(iname) in $e(call.arguments[0])
+        let templateForLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('for $i(iname)')) {
+                templateForLine = i;
+                break;
+            }
+        }
+        assert.ok(templateForLine >= 0, 'Should find line with template for loop');
+
+        // Test 1: Verify 'for' (3 chars) is highlighted as a keyword, not as entity.name.type
+        // 'for' is a flow-control keyword and should be tokenized as keyword.control
+        const forPos = findInLine(document, templateForLine, 'for');
+        const forScopes = await getTokenScopesAt(document, templateForLine, forPos.character);
+        const isForKeyword = forScopes?.scopes?.some(scope => scope.includes('keyword.control'));
+        assert.ok(isForKeyword, `'for' should be highlighted as keyword.control, not entity.name.type. Got scopes: ${JSON.stringify(forScopes?.scopes)}`);
+
+        // Test 2: Verify 'iname' is highlighted as entity.name.type
+        // Expected: entity.name.type.dascript (color #4EC9B0)
+        // Test 2: Verify 'iname' inside $i(iname) is highlighted as variable.parameter
+        // This is correct because 'iname' is a variable/parameter name being passed to the qmacro
+        const lineText = document.lineAt(templateForLine).text;
+        const inameIndex = lineText.indexOf('iname');
+        assert.ok(inameIndex > 0, 'Should find iname in line');
+        
+        const inamePos = new vscode.Position(templateForLine, inameIndex);
+        const inameScopes = await getTokenScopesAt(document, templateForLine, inamePos.character);
+        
+        const isInameVariable = inameScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter')
+        );
+        assert.ok(isInameVariable, `'iname' should be highlighted as variable.parameter (it's a parameter to qmacro escape sequence). Got scopes: ${JSON.stringify(inameScopes?.scopes)}`);
+
+        // Test 3: Verify first character 'i' (1 char) in 'iname' is also a variable
+        const firstIIndex = lineText.indexOf('$i(') + 3; // Position of 'i' in 'iname'
+        const firstIPos = new vscode.Position(templateForLine, firstIIndex);
+        const firstIScopes = await getTokenScopesAt(document, templateForLine, firstIPos.character);
+        // Should be variable.parameter
+        const isFirstIVariable = firstIScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter')
+        );
+        assert.ok(isFirstIVariable, `First character 'i' (1 char) should be highlighted as variable.parameter. Got scopes: ${JSON.stringify(firstIScopes?.scopes)}`);
+
+        // Test 4: Verify that qmacro parameters have variable scope
+        const hasVariableScope = inameScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter')
+        );
+        assert.ok(hasVariableScope, `Should have variable.parameter scope. Got scopes: ${JSON.stringify(inameScopes?.scopes)}`);
+
+        // Test 5: Verify 'iname' in yield statement
+        let yieldLine = -1;
+        for (let i = templateForLine; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('yield $i(iname)')) {
+                yieldLine = i;
+                break;
+            }
+        }
+        assert.ok(yieldLine >= 0, 'Should find line with yield statement');
+
+        const yieldLineText = document.lineAt(yieldLine).text;
+        const yieldInameIndex = yieldLineText.indexOf('iname');
+        const yieldInamePos = new vscode.Position(yieldLine, yieldInameIndex);
+        const yieldInameScopes = await getTokenScopesAt(document, yieldLine, yieldInamePos.character);
+        const isYieldInameVariable = yieldInameScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter')
+        );
+        assert.ok(isYieldInameVariable, `'iname' in yield should be highlighted as variable.parameter. Got scopes: ${JSON.stringify(yieldInameScopes?.scopes)}`);
+
+        console.log('✓ Template function variable names test passed');
+    });
+
+    test('Template function keywords should be highlighted as keywords not types', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/template-functions.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Find the template with multiple keywords
+        let templateLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def template_with_keywords')) {
+                templateLine = i;
+                break;
+            }
+        }
+        assert.ok(templateLine >= 0, 'Should find template_with_keywords function');
+
+        // Test 1: Verify 'if' keyword is highlighted as keyword.control
+        let ifLine = -1;
+        for (let i = templateLine; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('if $e(condition)')) {
+                ifLine = i;
+                break;
+            }
+        }
+        assert.ok(ifLine >= 0, 'Should find line with if statement');
+
+        const ifPos = findInLine(document, ifLine, 'if');
+        const ifScopes = await getTokenScopesAt(document, ifLine, ifPos.character);
+        const isIfKeyword = ifScopes?.scopes?.some(scope => scope.includes('keyword.control'));
+        assert.ok(isIfKeyword, `'if' should be highlighted as keyword.control. Got scopes: ${JSON.stringify(ifScopes?.scopes)}`);
+
+        // Test 2: Verify 'while' keyword is highlighted as keyword.control
+        let whileLine = -1;
+        for (let i = templateLine; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('while $v(counter)')) {
+                whileLine = i;
+                break;
+            }
+        }
+        assert.ok(whileLine >= 0, 'Should find line with while statement');
+
+        const whilePos = findInLine(document, whileLine, 'while');
+        const whileScopes = await getTokenScopesAt(document, whileLine, whilePos.character);
+        const isWhileKeyword = whileScopes?.scopes?.some(scope => scope.includes('keyword.control'));
+        assert.ok(isWhileKeyword, `'while' should be highlighted as keyword.control. Got scopes: ${JSON.stringify(whileScopes?.scopes)}`);
+
+        // Test 3: Verify 'let' keyword is highlighted as keyword
+        let letLine = -1;
+        for (let i = templateLine; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('let $v(result)')) {
+                letLine = i;
+                break;
+            }
+        }
+        assert.ok(letLine >= 0, 'Should find line with let statement');
+
+        const letPos = findInLine(document, letLine, 'let');
+        const letScopes = await getTokenScopesAt(document, letLine, letPos.character);
+        const isLetKeyword = letScopes?.scopes?.some(scope => 
+            scope.includes('keyword') || scope.includes('storage.modifier')
+        );
+        assert.ok(isLetKeyword, `'let' should be highlighted as a keyword or storage modifier. Got scopes: ${JSON.stringify(letScopes?.scopes)}`);
+
+        // Test 4: Verify 'return' keyword is highlighted as keyword
+        let returnLine = -1;
+        for (let i = templateLine; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('return $v(result)')) {
+                returnLine = i;
+                break;
+            }
+        }
+        assert.ok(returnLine >= 0, 'Should find line with return statement');
+
+        const returnPos = findInLine(document, returnLine, 'return');
+        const returnScopes = await getTokenScopesAt(document, returnLine, returnPos.character);
+        const isReturnKeyword = returnScopes?.scopes?.some(scope => scope.includes('keyword'));
+        assert.ok(isReturnKeyword, `'return' should be highlighted as a keyword. Got scopes: ${JSON.stringify(returnScopes?.scopes)}`);
+
+        // Test 5: Verify keywords are NOT highlighted as entity.name.type
+        const ifNotType = !ifScopes?.scopes?.some(scope => scope === 'entity.name.type.dascript');
+        const whileNotType = !whileScopes?.scopes?.some(scope => scope === 'entity.name.type.dascript');
+        const letNotType = !letScopes?.scopes?.some(scope => scope === 'entity.name.type.dascript');
+        const returnNotType = !returnScopes?.scopes?.some(scope => scope === 'entity.name.type.dascript');
+
+        assert.ok(ifNotType, `'if' should NOT be tokenized as entity.name.type.dascript`);
+        assert.ok(whileNotType, `'while' should NOT be tokenized as entity.name.type.dascript`);
+        assert.ok(letNotType, `'let' should NOT be tokenized as entity.name.type.dascript`);
+        assert.ok(returnNotType, `'return' should NOT be tokenized as entity.name.type.dascript`);
+
+        console.log('✓ Template function keywords test passed');
+    });
+
+    test('Qmacro escape sequences should be highlighted as function calls', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/template-functions.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Find the line with $i(iname)
+        let qmacroLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('$i(iname)')) {
+                qmacroLine = i;
+                break;
+            }
+        }
+        assert.ok(qmacroLine >= 0, 'Should find line with $i(iname)');
+
+        // Test 1: Verify '$i' single character 'i' is highlighted as entity.name.function
+        // Expected: entity.name.function (color #DCDCAA)
+        const lineText = document.lineAt(qmacroLine).text;
+        const dollarIIndex = lineText.indexOf('$i(');
+        assert.ok(dollarIIndex >= 0, 'Should find $i( in line');
+        
+        // Test the 'i' character right after '$'
+        const iPos = new vscode.Position(qmacroLine, dollarIIndex + 1);
+        const iScopes = await getTokenScopesAt(document, qmacroLine, iPos.character);
+        const isIFunction = iScopes?.scopes?.some(scope => scope.includes('entity.name.function'));
+        assert.ok(isIFunction, `'i' in '$i' should be highlighted as entity.name.function. Got scopes: ${JSON.stringify(iScopes?.scopes)}`);
+
+        // Test 2: Verify 'iname' parameter is highlighted as variable.parameter, not entity.name.type
+        const inameIndex = lineText.indexOf('$i(') + 3;
+        const inamePos = new vscode.Position(qmacroLine, inameIndex);
+        const inameScopes = await getTokenScopesAt(document, qmacroLine, inamePos.character);
+        const isInameVariable = inameScopes?.scopes?.some(scope => scope.includes('variable.parameter'));
+        const isNotInameType = !inameScopes?.scopes?.some(scope => scope === 'entity.name.type.dascript');
+        assert.ok(isInameVariable, `'iname' parameter should be highlighted as variable.parameter. Got scopes: ${JSON.stringify(inameScopes?.scopes)}`);
+        assert.ok(isNotInameType, `'iname' should NOT be highlighted as entity.name.type.dascript. Got scopes: ${JSON.stringify(inameScopes?.scopes)}`);
+
+        // Test 3: Verify $e escape sequence
+        let eLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('$e(call.arguments[0])')) {
+                eLine = i;
+                break;
+            }
+        }
+        assert.ok(eLine >= 0, 'Should find line with $e');
+
+        const eLineText = document.lineAt(eLine).text;
+        const dollarEIndex = eLineText.indexOf('$e(');
+        const ePos = new vscode.Position(eLine, dollarEIndex + 1);
+        const eScopes = await getTokenScopesAt(document, eLine, ePos.character);
+        const isEFunction = eScopes?.scopes?.some(scope => scope.includes('entity.name.function'));
+        assert.ok(isEFunction, `'e' in '$e' should be highlighted as entity.name.function. Got scopes: ${JSON.stringify(eScopes?.scopes)}`);
+
+        // Test 4: Verify $v escape sequence
+        let vLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('$v(vname)')) {
+                vLine = i;
+                break;
+            }
+        }
+        assert.ok(vLine >= 0, 'Should find line with $v');
+
+        const vLineText = document.lineAt(vLine).text;
+        const dollarVIndex = vLineText.indexOf('$v(');
+        const vPos = new vscode.Position(vLine, dollarVIndex + 1);
+        const vScopes = await getTokenScopesAt(document, vLine, vPos.character);
+        const isVFunction = vScopes?.scopes?.some(scope => scope.includes('entity.name.function'));
+        assert.ok(isVFunction, `'v' in '$v' should be highlighted as entity.name.function. Got scopes: ${JSON.stringify(vScopes?.scopes)}`);
+
+        console.log('✓ Qmacro escape sequences test passed');
+    });
+
+    test('Call macro annotations before class with generic inheritance should highlight correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/call-macro-annotations.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Find [call_macro(name="yeild_from")] annotation
+        let callMacroLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('[call_macro(name="yeild_from")]')) {
+                callMacroLine = i;
+                break;
+            }
+        }
+        assert.ok(callMacroLine >= 0, 'Should find [call_macro(name="yeild_from")] line');
+
+        // Verify 'call_macro' text (10 chars) is highlighted as annotation, not as entity.name.type
+        const lineText = document.lineAt(callMacroLine).text;
+        const callMacroIndex = lineText.indexOf('call_macro');
+        assert.ok(callMacroIndex >= 0, 'Should find call_macro text');
+
+        const callMacroPos = new vscode.Position(callMacroLine, callMacroIndex);
+        const callMacroScopes = await getTokenScopesAt(document, callMacroLine, callMacroPos.character);
+        
+        // Should be entity.name.function.annotation, NOT entity.name.type
+        const isAnnotation = callMacroScopes?.scopes?.some(scope => 
+            scope.includes('entity.name.function.annotation')
+        );
+        const isInMetaTemplate = callMacroScopes?.scopes?.some(scope => 
+            scope.includes('meta.template.function')
+        );
+        const isEntityNameType = callMacroScopes?.scopes?.some(scope => 
+            scope === 'entity.name.type.dascript'
+        );
+
+        assert.ok(isAnnotation, `'call_macro' should be highlighted as entity.name.function.annotation. Got scopes: ${JSON.stringify(callMacroScopes?.scopes)}`);
+        assert.ok(!isInMetaTemplate, `'call_macro' should NOT be in meta.template.function context. Got scopes: ${JSON.stringify(callMacroScopes?.scopes)}`);
+        assert.ok(!isEntityNameType, `'call_macro' should NOT be entity.name.type.dascript. Got scopes: ${JSON.stringify(callMacroScopes?.scopes)}`);
+
+        // Test 2: Verify next line with class inheritance doesn't affect annotation
+        let classLine = callMacroLine + 1;
+        const classLineText = document.lineAt(classLine).text;
+        assert.ok(classLineText.includes('class private YieldFrom : AstCallMacro'), 'Should find class declaration');
+
+        // Verify AstCallMacro is highlighted as a type
+        const astCallMacroIndex = classLineText.indexOf('AstCallMacro');
+        const astCallMacroPos = new vscode.Position(classLine, astCallMacroIndex);
+        const astCallMacroScopes = await getTokenScopesAt(document, classLine, astCallMacroPos.character);
+        const isAstCallMacroType = astCallMacroScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type') || scope.includes('entity.other.inherited-class')
+        );
+        assert.ok(isAstCallMacroType, `'AstCallMacro' should be highlighted as a type. Got scopes: ${JSON.stringify(astCallMacroScopes?.scopes)}`);
+
+        console.log('✓ Call macro annotations with inheritance test passed');
+    });
+
+    test('Call macro annotations after qmacro blocks should highlight correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/call-macro-annotations.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Find the second [call_macro] annotation (the one after qmacro_block)
+        let secondCallMacroLine = -1;
+        let foundFirst = false;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('[call_macro(name="co_continue")]')) {
+                secondCallMacroLine = i;
+                break;
+            }
+        }
+        assert.ok(secondCallMacroLine >= 0, 'Should find second [call_macro] annotation');
+
+        const lineText = document.lineAt(secondCallMacroLine).text;
+        const callMacroIndex = lineText.indexOf('call_macro');
+        assert.ok(callMacroIndex >= 0, 'Should find call_macro text');
+
+        const callMacroPos = new vscode.Position(secondCallMacroLine, callMacroIndex);
+        const callMacroScopes = await getTokenScopesAt(document, secondCallMacroLine, callMacroPos.character);
+
+        // Should be entity.name.function.annotation, NOT entity.name.type
+        const isAnnotation = callMacroScopes?.scopes?.some(scope => 
+            scope.includes('entity.name.function.annotation')
+        );
+        const isInMetaTemplate = callMacroScopes?.scopes?.some(scope => 
+            scope.includes('meta.template.function')
+        );
+        const isEntityNameType = callMacroScopes?.scopes?.some(scope => 
+            scope === 'entity.name.type.dascript'
+        );
+
+        assert.ok(isAnnotation, `Second 'call_macro' (after qmacro_block) should be highlighted as entity.name.function.annotation. Got scopes: ${JSON.stringify(callMacroScopes?.scopes)}`);
+        assert.ok(!isInMetaTemplate, `Second 'call_macro' should NOT be in meta.template.function context. Got scopes: ${JSON.stringify(callMacroScopes?.scopes)}`);
+        assert.ok(!isEntityNameType, `Second 'call_macro' should NOT be entity.name.type.dascript. Got scopes: ${JSON.stringify(callMacroScopes?.scopes)}`);
+
+        console.log('✓ Call macro annotation after qmacro_block test passed');
     });});

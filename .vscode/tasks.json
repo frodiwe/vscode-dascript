@@ -4,7 +4,7 @@
     {
       "label": "build",
       "type": "shell",
-      "command": "npx js-yaml syntaxes/dascript.tmLanguage.yaml | Set-Content -Path syntaxes/dascript.tmLanguage.json -NoNewline",
+      "command": "npx js-yaml syntaxes/dascript.tmLanguage.yaml > syntaxes/dascript.tmLanguage.json",
       "problemMatcher": {
         "owner": "yaml",
         "fileLocation": [

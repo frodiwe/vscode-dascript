@@ -12,6 +12,7 @@ patterns:
   - include: '#builtin_types'
   - include: '#builtin_functions_name'
   - include: '#builtin_functions_call'
+  - include: '#qmacro_escape_sequences'
   - include: '#function_call'
   - include: '#function_no_args'
   - include: '#ternary_operator'
@@ -21,6 +22,7 @@ patterns:
   - include: '#module_specifier'
   - include: '#assignment'
   - include: '#typedef'
+  - include: '#qmacro_block'
   - include: '#template'
   - include: '#identifier'
 repository:
@@ -101,7 +103,7 @@ repository:
     patterns:
       - name: string.quoted.double.dascript
         begin: '"'
-        end: '"|(?=\n)'
+        end: '"'
         beginCaptures:
           0: {name: punctuation.definition.string.begin.dascript}
         endCaptures:
@@ -120,6 +122,7 @@ repository:
             patterns:
               - include: '#comments'
               - include: '#keywords'
+              - include: '#strings'
               - include: '#builtin_types'
               - include: '#builtin_functions_call'
               - include: '#function_call'
@@ -133,7 +136,7 @@ repository:
                   '2': {name: constant.numeric.float.dascript}
       - name: string.quoted.single.dascript
         begin: "'"
-        end: "'|(?=\n)"
+        end: "'"
         beginCaptures:
           0: {name: punctuation.definition.string.begin.dascript}
         endCaptures:
@@ -269,7 +272,7 @@ repository:
   function_call:
     patterns:
       - name: meta.function-call.dascript
-        begin: (?:\.)?([[:alpha:]_][[:alnum:]_\:]*)\s*(?=(\())
+        begin: (?:\.)?([[:alpha:]_][[:alnum:]_]*(?:::[[:alnum:]_]+)*)\s*(?=(\())
         beginCaptures:
           1: {name: entity.name.function}
         end: (\))
@@ -291,37 +294,72 @@ repository:
         beginCaptures:
           1: {name: entity.name.function}
         end: (?:\<\|)
+  qmacro_escape_sequences:
+    patterns:
+      - name: meta.qmacro-escape.dascript
+        begin: (\$)([ifevatcb])(\()
+        beginCaptures:
+          1: {name: punctuation.definition.qmacro.dascript}
+          2: {name: entity.name.function}
+          3: {name: punctuation.definition.arguments.begin.dascript}
+        end: (\))
+        endCaptures:
+          1: {name: punctuation.definition.arguments.end.dascript}
+        patterns:
+          - include: '#strings'
+          - include: '#literals'
+          - include: '#builtin_types'
+          - match: \b([[:alpha:]_][[:alnum:]_]*)\b
+            name: variable.parameter.dascript
+  qmacro_block:
+    patterns:
+      - name: meta.qmacro.block.dascript
+        begin: \<\|
+        beginCaptures:
+          0: {name: punctuation.definition.qmacro.begin.dascript}
+        end: \|\>
+        endCaptures:
+          0: {name: punctuation.definition.qmacro.end.dascript}
+        patterns:
+          - include: '#qmacro_escape_sequences'
+          - include: '#comments'
+          - include: '#keywords'
+          - include: '#strings'
+          - include: '#literals'
+          - include: '#builtin_types'
+          - include: '#function_call'
+          - include: '#variable_declaration'
+          - include: '#assignment'
   function:
-    name: meta.function.dascript
-    begin: (def)\s+((?:private|public|abstract|override|static)\s+)?((?:private|public|abstract|override)\s+)?(operator)?(?=.+\s*\()|(\$)\s*(?=\[(?:.*?)\])|(\$)\s*(?=\()
-    beginCaptures:
-      1:
-        name: storage.type.function.dascript
-      2:
-        name: keyword.type.dascript
-      3:
-        name: keyword.type.dascript
-      4:
-        name: keyword.type.dascript
-      5:
-        name: storage.type.function.dascript
-      6:
-        name: storage.type.function.dascript
-      7:
-        name: storage.type.function.dascript
-    end: \(
-    endCaptures:
-      1:
-        name: punctuation.section.function.begin.dascript
-      2:
-        name: entity.name.type.function.dascript
-    contentName: entity.name.function.dascript
+    patterns:
+      - name: meta.function.dascript
+        match: \b(def)\s+((?:private|public|abstract|override|static)\s+)?((?:private|public|abstract|override)\s+)?(operator\s+)?([[:alnum:]_]+)
+        captures:
+          1:
+            name: storage.type.function.dascript
+          2:
+            name: keyword.type.dascript
+          3:
+            name: keyword.type.dascript
+          4:
+            name: keyword.type.dascript
+          5:
+            name: entity.name.function.dascript
   function_return_type:
     name: meta.function.return-type.dascript
-    begin: (?<=\))\s*:\s*
-    end: (?=\s*\{|$)
+    begin: (?<=\))(\s*)(:)|(?<=[[:alnum:]_])(\s*)(:)
+    beginCaptures:
+      2:
+        name: punctuation.separator.return-type.dascript
+      4:
+        name: punctuation.separator.return-type.dascript
+    end: (?=\s*\{|;|$|=)
     patterns:
+      - include: '#comments'
+      - include: '#strings'
       - include: '#template'
+      - include: '#keywords'
+      - include: '#builtin_types'
       - match: ([[:alnum:]_]+)
         name: entity.name.type.dascript
   arrays:
@@ -505,15 +543,12 @@ repository:
   template:
     patterns:
       - name: meta.template.function.dascript
-        begin: \b(?:(?<=block|lambda)\s*\<\s*)
+        begin: \b(?:(?<=block|lambda)\s*\<(?!\|)\s*)
         end: (?=\(|\>)
         patterns:
+          - include: '#qmacro_escape_sequences'
+          - include: '#keywords'
           - include: '#builtin_types'
-          - name: meta.template.function.short.dascript
-            begin: (?=\<)
-            captures:
-              1: {name: entity.name.type.dascript}
-            end: (?=\>)
           - match: \b([[:alnum:]_]+)\b
             name: entity.name.type.dascript
       - name: meta.template.dascript

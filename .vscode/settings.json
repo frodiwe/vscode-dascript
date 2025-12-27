@@ -1,2 +1,9 @@
 {
+  "chat.mcp.serverSampling": {
+    "vscode-dascript/.vscode/mcp.json: context7": {
+      "allowedModels": [
+        "copilot/claude-sonnet-4.5"
+      ]
+    }
+  }
 }

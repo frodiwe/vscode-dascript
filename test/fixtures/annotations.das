@@ -59,8 +59,14 @@ class AbstractGameClient : Component {
 
 // Function annotations
 [deprecated]
-def old_function()
+def old_function() {
     pass
+}
+
+[cheat]
+def foo() {
+    pass
+}
 
 // Block annotations - appear after block declaration
 def queryOne(dt:float=1.0f) {
@@ -87,3 +93,21 @@ struct AnnotatedStruct {
 struct MultiAnnotated {
     data : int
 }
+
+// Call macro annotations - used for macro definitions
+[call_macro(name="yield_from")]
+class private YieldFrom : AstCallMacro
+    def override visit(prog: ProgramPtr; mod: Module?)
+        return true
+
+// Another call macro annotation
+[call_macro(name="co_continue")]
+class private CoContinue : AstCallMacro
+    def override visit(prog: ProgramPtr; mod: Module?)
+        return false
+
+// Function macro annotation
+[function_macro]
+class TestMacro
+    def apply()
+        return 1
