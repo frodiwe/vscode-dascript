@@ -73,6 +73,9 @@
       "include": "#template"
     },
     {
+      "include": "#literals"
+    },
+    {
       "include": "#identifier"
     }
   ],
@@ -356,9 +359,9 @@
       "patterns": [
         {
           "name": "meta.annotation.structure.dascript",
-          "begin": "(?<!\\[)\\[(?!\\[)",
+          "begin": "(?<=^|[\\s\\n\\r]|;|{)(\\[)(?!\\[)",
           "beginCaptures": {
-            "0": {
+            "1": {
               "name": "punctuation.definition.annotation.begin.dascript"
             }
           },
@@ -1132,17 +1135,29 @@
       "name": "variable.parameter.identifier.dascript"
     },
     "typedef": {
-      "name": "meta.typedef.dascript",
-      "begin": "\\b(typedef)\\s*([[:alnum:]_]+)\\b",
-      "beginCaptures": {
-        "1": {
-          "name": "keyword.type.dascript"
+      "patterns": [
+        {
+          "name": "meta.typedef.dascript",
+          "match": "\\b(typedef)(?:\\s+([[:alnum:]_]+))?",
+          "captures": {
+            "1": {
+              "name": "keyword.type.dascript"
+            },
+            "2": {
+              "name": "entity.name.type.dascript"
+            }
+          }
         },
-        "2": {
-          "name": "entity.name.type.dascript"
+        {
+          "name": "meta.typedef.type.dascript",
+          "match": "^\\s+([[:alnum:]_]+)\\s*(?==)",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.dascript"
+            }
+          }
         }
-      },
-      "end": "(?=\\=)"
+      ]
     },
     "template": {
       "patterns": [

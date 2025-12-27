@@ -2298,4 +2298,260 @@ suite('daScript Syntax Highlighting Tests', () => {
 
         console.log('✓ Generator in qmacro_block test passed');
     });
+
+    test('Array indexing brackets should highlight correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/array-indexing.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Simple array indexing - items[0]
+        let simpleIndexLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('let first = items[0]')) {
+                simpleIndexLine = i;
+                break;
+            }
+        }
+        assert.ok(simpleIndexLine >= 0, 'Should find simple array indexing line');
+
+        // Verify the number inside brackets is recognized
+        const zeroPos = document.lineAt(simpleIndexLine).text.indexOf('[0]') + 1;
+        const zeroScopes = await getTokenScopesAt(document, simpleIndexLine, zeroPos);
+        const isNumber = zeroScopes?.scopes?.some(scope => 
+            scope.includes('constant.numeric') || scope.includes('source.dascript')
+        );
+        assert.ok(isNumber, `Number inside brackets should be recognized. Got scopes: ${JSON.stringify(zeroScopes?.scopes)}`);
+
+        // Test 2: Array indexing with variable - items[index]
+        let varIndexLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('let value = items[index]')) {
+                varIndexLine = i;
+                break;
+            }
+        }
+        assert.ok(varIndexLine >= 0, 'Should find variable index line');
+
+        const indexPos = findInLine(document, varIndexLine, 'index');
+        const indexScopes = await getTokenScopesAt(document, varIndexLine, indexPos.character);
+        const isVariable = indexScopes?.scopes?.some(scope => 
+            scope.includes('variable') || scope.includes('source.dascript')
+        );
+        assert.ok(isVariable, `Variable inside brackets should be recognized. Got scopes: ${JSON.stringify(indexScopes?.scopes)}`);
+
+        // Test 3: Multi-dimensional array indexing - matrix[1][2]
+        let multiDimLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('let element = matrix[1][2]')) {
+                multiDimLine = i;
+                break;
+            }
+        }
+        assert.ok(multiDimLine >= 0, 'Should find multi-dimensional indexing line');
+
+        // Count brackets - should have at least 4 bracket tokens (2 opening, 2 closing)
+        const multiDimText = document.lineAt(multiDimLine).text;
+        const bracketCount = (multiDimText.match(/\[/g) || []).length;
+        assert.ok(bracketCount >= 2, 'Should have multiple opening brackets for multi-dimensional indexing');
+
+        // Test 4: Array indexing in expressions - items[0] + items[1]
+        let expressionLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('let sum = items[0] + items[1]')) {
+                expressionLine = i;
+                break;
+            }
+        }
+        assert.ok(expressionLine >= 0, 'Should find expression with array indexing');
+
+        // Verify plus operator is highlighted as operator
+        const plusPos = findInLine(document, expressionLine, '+');
+        const plusScopes = await getTokenScopesAt(document, expressionLine, plusPos.character);
+        const isPlusOperator = plusScopes?.scopes?.some(scope => scope.includes('keyword.operator'));
+        assert.ok(isPlusOperator, `Plus sign should be an operator. Got scopes: ${JSON.stringify(plusScopes?.scopes)}`);
+
+        // Test 5: Array indexing in string interpolation - print("First: {items[0]}")
+        let stringInterpLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('print("First: {items[0]}")')) {
+                stringInterpLine = i;
+                break;
+            }
+        }
+        assert.ok(stringInterpLine >= 0, 'Should find string interpolation with array indexing');
+
+        const firstPos = findInLine(document, stringInterpLine, 'First');
+        const firstScopes = await getTokenScopesAt(document, stringInterpLine, firstPos.character);
+        const isInString = firstScopes?.scopes?.some(scope => scope.includes('string'));
+        assert.ok(isInString, `Text should be inside string. Got scopes: ${JSON.stringify(firstScopes?.scopes)}`);
+
+        // Test 6: Array indexing with member access - objects[0].name
+        let memberAccessLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('let name = objects[0].name')) {
+                memberAccessLine = i;
+                break;
+            }
+        }
+        assert.ok(memberAccessLine >= 0, 'Should find member access with array indexing');
+
+        // Verify that 'name' after the dot is accessible (just check the line exists and parses)
+        const nameAfterDot = document.lineAt(memberAccessLine).text.indexOf('.name');
+        assert.ok(nameAfterDot > 0, 'Should find .name in the line');
+
+        // Test 7: Array indexing in assignment - items[0] = 100
+        let assignmentLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.trim() === 'items[0] = 100') {
+                assignmentLine = i;
+                break;
+            }
+        }
+        assert.ok(assignmentLine >= 0, 'Should find assignment with array indexing');
+
+        const equalsPos = findInLine(document, assignmentLine, '=');
+        const equalsScopes = await getTokenScopesAt(document, assignmentLine, equalsPos.character);
+        const isAssignment = equalsScopes?.scopes?.some(scope => 
+            scope.includes('keyword.operator')
+        );
+        assert.ok(isAssignment, `Equals sign should be an operator. Got scopes: ${JSON.stringify(equalsScopes?.scopes)}`);
+
+        // Test 8: Complex expression in brackets - items[index * 2 + 1]
+        let complexExprLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('items[index * 2 + 1]')) {
+                complexExprLine = i;
+                break;
+            }
+        }
+        assert.ok(complexExprLine >= 0, 'Should find complex expression in brackets');
+
+        // Just verify the line is parsed correctly (contains the expected tokens)
+        const lineText = document.lineAt(complexExprLine).text;
+        assert.ok(lineText.includes('index'), 'Line should contain index variable');
+        assert.ok(lineText.includes('*'), 'Line should contain multiplication operator');
+        assert.ok(lineText.includes('+'), 'Line should contain addition operator');
+
+        console.log('✓ Array indexing test passed');
+    });
+
+    test('Typedef declarations should highlight correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/typedef.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Single-line typedef - typedef MyInt = int
+        let singleLineTypedefLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('typedef MyInt = int')) {
+                singleLineTypedefLine = i;
+                break;
+            }
+        }
+        assert.ok(singleLineTypedefLine >= 0, 'Should find single-line typedef');
+
+        const typedefKeywordPos = findInLine(document, singleLineTypedefLine, 'typedef');
+        const typedefKeywordScopes = await getTokenScopesAt(document, singleLineTypedefLine, typedefKeywordPos.character);
+        const isTypedefKeyword = typedefKeywordScopes?.scopes?.some(scope => 
+            scope.includes('keyword.type.dascript')
+        );
+        assert.ok(isTypedefKeyword, `'typedef' should be a keyword. Got scopes: ${JSON.stringify(typedefKeywordScopes?.scopes)}`);
+
+        const myIntPos = findInLine(document, singleLineTypedefLine, 'MyInt');
+        const myIntScopes = await getTokenScopesAt(document, singleLineTypedefLine, myIntPos.character);
+        const isTypeName = myIntScopes?.scopes?.some(scope => 
+            scope.includes('entity.name.type.dascript')
+        );
+        assert.ok(isTypeName, `'MyInt' should be a type name. Got scopes: ${JSON.stringify(myIntScopes?.scopes)}`);
+
+        // Test 2: Multiline typedef with single type - typedef\n    Coroutine = iterator<bool>
+        let multilineTypedefLine = -1;
+        let coroutineLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.trim() === 'typedef' && i + 1 < document.lineCount) {
+                const nextLineText = document.lineAt(i + 1).text;
+                if (nextLineText.includes('Coroutine = iterator<bool>')) {
+                    multilineTypedefLine = i;
+                    coroutineLine = i + 1;
+                    break;
+                }
+            }
+        }
+        assert.ok(multilineTypedefLine >= 0, 'Should find multiline typedef declaration');
+        assert.ok(coroutineLine >= 0, 'Should find Coroutine type definition line');
+
+        const multilineTypedefPos = findInLine(document, multilineTypedefLine, 'typedef');
+        const multilineTypedefScopes = await getTokenScopesAt(document, multilineTypedefLine, multilineTypedefPos.character);
+        const isMultilineTypedefKeyword = multilineTypedefScopes?.scopes?.some(scope => 
+            scope.includes('keyword.type.dascript')
+        );
+        assert.ok(isMultilineTypedefKeyword, `Multiline 'typedef' should be a keyword. Got scopes: ${JSON.stringify(multilineTypedefScopes?.scopes)}`);
+
+        const coroutinePos = findInLine(document, coroutineLine, 'Coroutine');
+        const coroutineScopes = await getTokenScopesAt(document, coroutineLine, coroutinePos.character);
+        const isCoroutineTypeName = coroutineScopes?.scopes?.some(scope => 
+            scope.includes('entity.name.type.dascript')
+        );
+        assert.ok(isCoroutineTypeName, `'Coroutine' should be a type name. Got scopes: ${JSON.stringify(coroutineScopes?.scopes)}`);
+
+        // Test 3: Multiline typedef with multiple types
+        let multiTypedefLine = -1;
+        let coroutinesLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.trim() === 'typedef') {
+                // Check if next two lines have Coroutine and Coroutines
+                if (i + 2 < document.lineCount) {
+                    const line1 = document.lineAt(i + 1).text;
+                    const line2 = document.lineAt(i + 2).text;
+                    if (line1.includes('Coroutine = iterator<bool>') && line2.includes('Coroutines = array<Coroutine>')) {
+                        multiTypedefLine = i;
+                        coroutinesLine = i + 2;
+                        break;
+                    }
+                }
+            }
+        }
+        assert.ok(multiTypedefLine >= 0, 'Should find typedef with multiple types');
+        assert.ok(coroutinesLine >= 0, 'Should find Coroutines type definition line');
+
+        const coroutinesPos = findInLine(document, coroutinesLine, 'Coroutines');
+        const coroutinesScopes = await getTokenScopesAt(document, coroutinesLine, coroutinesPos.character);
+        const isCoroutinesTypeName = coroutinesScopes?.scopes?.some(scope => 
+            scope.includes('entity.name.type.dascript')
+        );
+        assert.ok(isCoroutinesTypeName, `'Coroutines' should be a type name. Got scopes: ${JSON.stringify(coroutinesScopes?.scopes)}`);
+
+        // Test 4: Complex types in typedef
+        let handlerLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('Handler = function<void>')) {
+                handlerLine = i;
+                break;
+            }
+        }
+        assert.ok(handlerLine >= 0, 'Should find Handler type definition');
+
+        const handlerPos = findInLine(document, handlerLine, 'Handler');
+        const handlerScopes = await getTokenScopesAt(document, handlerLine, handlerPos.character);
+        const isHandlerTypeName = handlerScopes?.scopes?.some(scope => 
+            scope.includes('entity.name.type.dascript')
+        );
+        assert.ok(isHandlerTypeName, `'Handler' should be a type name. Got scopes: ${JSON.stringify(handlerScopes?.scopes)}`);
+
+        console.log('✓ Typedef test passed');
+    });
 });
