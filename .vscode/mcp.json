@@ -2,8 +2,11 @@
     "servers": {
         "context7": {
             "type": "stdio",
-            "command": "npx",
-            "args": ["-y", "@upstash/context7-mcp", "--api-key", "ctx7sk-fea6a102-64a9-4a30-9956-45a935b27c9e"]
+            "command": "/opt/homebrew/bin/npx",
+            "args": ["-y", "@upstash/context7-mcp", "--api-key", "ctx7sk-fea6a102-64a9-4a30-9956-45a935b27c9e"],
+            "env": {
+                "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+            }
         }
     }
 }
