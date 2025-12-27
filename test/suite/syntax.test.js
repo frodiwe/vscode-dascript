@@ -2143,4 +2143,159 @@ suite('daScript Syntax Highlighting Tests', () => {
         assert.ok(!isEntityNameType, `Second 'call_macro' should NOT be entity.name.type.dascript. Got scopes: ${JSON.stringify(callMacroScopes?.scopes)}`);
 
         console.log('✓ Call macro annotation after qmacro_block test passed');
-    });});
+    });
+
+    test('Generator type with angle brackets should not include < in keyword', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/generator-types.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Find the line with generator<$t(retT)>() <|
+        let generatorLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('generator<$t(retT)>() <|')) {
+                generatorLine = i;
+                break;
+            }
+        }
+        assert.ok(generatorLine >= 0, 'Should find line with generator<$t(retT)>() <|');
+
+        // Test 1: Verify 'generator' is a keyword
+        const generatorPos = findInLine(document, generatorLine, 'generator');
+        const generatorScopes = await getTokenScopesAt(document, generatorLine, generatorPos.character);
+        const isGeneratorKeyword = generatorScopes?.scopes?.some(scope => 
+            scope.includes('keyword.type.dascript')
+        );
+        assert.ok(isGeneratorKeyword, `'generator' should be a keyword. Got scopes: ${JSON.stringify(generatorScopes?.scopes)}`);
+
+        // Test 2: Verify the '<' after 'generator' is NOT an operator (it's part of generic type syntax)
+        const anglePos = findInLine(document, generatorLine, 'generator<');
+        const angleBracketPos = anglePos.character + 'generator'.length; // position of '<'
+        const angleBracketScopes = await getTokenScopesAt(document, generatorLine, angleBracketPos);
+        const isGenericPunctuation = angleBracketScopes?.scopes?.some(scope => 
+            scope.includes('punctuation.definition.generic')
+        );
+        const isNotOperator = !angleBracketScopes?.scopes?.some(scope =>
+            scope.includes('keyword.operator')
+        );
+        assert.ok(isGenericPunctuation, `'<' after generator should be generic punctuation. Got scopes: ${JSON.stringify(angleBracketScopes?.scopes)}`);
+        assert.ok(isNotOperator, `'<' should NOT be an operator in generic context. Got scopes: ${JSON.stringify(angleBracketScopes?.scopes)}`);
+
+        // Test 3: Verify '<|' pipe operator still works
+        const pipePos = findInLine(document, generatorLine, '<|');
+        const pipeScopes = await getTokenScopesAt(document, generatorLine, pipePos.character);
+        const isPipeOperator = pipeScopes?.scopes?.some(scope => 
+            scope.includes('keyword.operator')
+        );
+        assert.ok(isPipeOperator, `'<|' should be an operator. Got scopes: ${JSON.stringify(pipeScopes?.scopes)}`);
+
+        console.log('✓ Generator type angle brackets test passed');
+    });
+
+    test('Comparison operators should highlight correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/generator-types.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Find the line with comparison: if a < b
+        let comparisonLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.trim() === 'if a < b') {
+                comparisonLine = i;
+                break;
+            }
+        }
+        assert.ok(comparisonLine >= 0, 'Should find line with "if a < b"');
+
+        // Test '<' operator
+        const lessThanPos = findInLine(document, comparisonLine, '<');
+        const lessThanScopes = await getTokenScopesAt(document, comparisonLine, lessThanPos.character);
+        const isLessThanOperator = lessThanScopes?.scopes?.some(scope => 
+            scope.includes('keyword.operator')
+        );
+        assert.ok(isLessThanOperator, `'<' should be an operator. Got scopes: ${JSON.stringify(lessThanScopes?.scopes)}`);
+
+        // Find the line with: if b > a
+        let greaterLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.trim() === 'if b > a') {
+                greaterLine = i;
+                break;
+            }
+        }
+        assert.ok(greaterLine >= 0, 'Should find line with "if b > a"');
+
+        // Test '>' operator
+        const greaterThanPos = findInLine(document, greaterLine, '>');
+        const greaterThanScopes = await getTokenScopesAt(document, greaterLine, greaterThanPos.character);
+        const isGreaterThanOperator = greaterThanScopes?.scopes?.some(scope => 
+            scope.includes('keyword.operator')
+        );
+        assert.ok(isGreaterThanOperator, `'>' should be an operator. Got scopes: ${JSON.stringify(greaterThanScopes?.scopes)}`);
+
+        console.log('✓ Comparison operators test passed');
+    });
+
+    test('Generator type in qmacro_block should not highlight < as operator', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/generator-types.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Find the exact line from user's example: var inscope blk <- qmacro_block <|
+        //                                          return <- generator<$t(retT)>() <|
+        let qmacroGeneratorLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('var inscope blk <- qmacro_block')) {
+                // The generator line is the next non-empty line
+                for (let j = i + 1; j < document.lineCount; j++) {
+                    if (document.lineAt(j).text.includes('generator<$t(retT)>()')) {
+                        qmacroGeneratorLine = j;
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        assert.ok(qmacroGeneratorLine >= 0, 'Should find line with generator<$t(retT)>() inside qmacro_block');
+
+        // Verify the '<' after 'generator' is NOT an operator
+        const generatorText = 'generator';
+        const lineText = document.lineAt(qmacroGeneratorLine).text;
+        const generatorIndex = lineText.indexOf(generatorText);
+        assert.ok(generatorIndex >= 0, 'Should find generator text in line');
+        
+        const angleBracketPos = generatorIndex + generatorText.length;
+        const angleBracketScopes = await getTokenScopesAt(document, qmacroGeneratorLine, angleBracketPos);
+        
+        const isGenericPunctuation = angleBracketScopes?.scopes?.some(scope => 
+            scope.includes('punctuation.definition.generic')
+        );
+        const isNotOperator = !angleBracketScopes?.scopes?.some(scope =>
+            scope.includes('keyword.operator')
+        );
+        
+        assert.ok(isGenericPunctuation, `'<' after generator in qmacro_block should be generic punctuation. Got scopes: ${JSON.stringify(angleBracketScopes?.scopes)}`);
+        assert.ok(isNotOperator, `'<' should NOT be an operator. Got scopes: ${JSON.stringify(angleBracketScopes?.scopes)}`);
+
+        console.log('✓ Generator in qmacro_block test passed');
+    });
+});
