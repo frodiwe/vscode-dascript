@@ -2747,4 +2747,93 @@ suite('daScript Syntax Highlighting Tests', () => {
 
         console.log('✓ type<> angle brackets test passed');
     });
+
+    test('auto keyword should be highlighted in variant arguments and other contexts', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/auto-keyword.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: auto in variant type - the main case from the issue
+        // def public await(var a : iterator<variant<res : auto(T); wait : bool>>) : T
+        let variantAutoLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('res : auto(T)')) {
+                variantAutoLine = i;
+                break;
+            }
+        }
+        assert.ok(variantAutoLine >= 0, 'Should find line with variant<res : auto(T)>');
+
+        const autoPos = findInLine(document, variantAutoLine, 'auto');
+        const autoScopes = await getTokenScopesAt(document, variantAutoLine, autoPos.character);
+        
+        const isKeyword = autoScopes?.scopes?.some(scope => 
+            scope.includes('keyword.type')
+        );
+        const isNotEntity = !autoScopes?.scopes?.some(scope => 
+            scope.includes('entity.name.type.variant.argument')
+        );
+        
+        assert.ok(isKeyword, `'auto' in variant should be highlighted as keyword.type. Got scopes: ${JSON.stringify(autoScopes?.scopes)}`);
+        assert.ok(isNotEntity, `'auto' should NOT be highlighted as entity.name.type.variant.argument. Got scopes: ${JSON.stringify(autoScopes?.scopes)}`);
+
+        // Test 2: T inside auto(T) should be highlighted as typename
+        const tPos = findInLine(document, variantAutoLine, '(T)');
+        const tScopes = await getTokenScopesAt(document, variantAutoLine, tPos.character + 1); // Position of T
+        
+        const isTypename = tScopes?.scopes?.some(scope => 
+            scope.includes('entity.name.type.auto.typename')
+        );
+        
+        assert.ok(isTypename, `'T' in auto(T) should be highlighted as entity.name.type.auto.typename. Got scopes: ${JSON.stringify(tScopes?.scopes)}`);
+
+        // Test 3: auto in simple return type
+        let simpleAutoLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('def simple_auto() : auto')) {
+                simpleAutoLine = i;
+                break;
+            }
+        }
+        assert.ok(simpleAutoLine >= 0, 'Should find line with simple auto return type');
+
+        const simpleAutoPos = findInLine(document, simpleAutoLine, ': auto');
+        const simpleAutoScopes = await getTokenScopesAt(document, simpleAutoLine, simpleAutoPos.character + 2);
+        
+        const isSimpleAutoType = simpleAutoScopes?.scopes?.some(scope => 
+            scope.includes('support.type.auto') || scope.includes('keyword.type')
+        );
+        
+        assert.ok(isSimpleAutoType, `'auto' in simple return type should be highlighted as a type keyword. Got scopes: ${JSON.stringify(simpleAutoScopes?.scopes)}`);
+
+        // Test 4: auto in function parameter
+        let paramAutoLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('def func_with_auto_param(x : auto(T))')) {
+                paramAutoLine = i;
+                break;
+            }
+        }
+        assert.ok(paramAutoLine >= 0, 'Should find line with auto in parameter');
+
+        const paramAutoPos = findInLine(document, paramAutoLine, ': auto(T)');
+        const paramAutoScopes = await getTokenScopesAt(document, paramAutoLine, paramAutoPos.character + 2);
+        
+        const isParamAutoKeyword = paramAutoScopes?.scopes?.some(scope => 
+            scope.includes('keyword.type')
+        );
+        
+        assert.ok(isParamAutoKeyword, `'auto' in parameter should be highlighted as keyword.type. Got scopes: ${JSON.stringify(paramAutoScopes?.scopes)}`);
+
+        console.log('✓ auto keyword highlighting test passed');
+    });
 });

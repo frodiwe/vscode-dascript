@@ -673,16 +673,38 @@ repository:
               1: {name: variable.parameter.variant.identifier.dascript}
             end: (?=\,|\;|\>)
             patterns:
+              - name: meta.template.argument.auto.dascript
+                begin: \b(auto)\b
+                beginCaptures:
+                  1: {name: keyword.type.dascript}
+                end: (?=\)|\,|\;|\>)
+                patterns:
+                  - begin: \(
+                    beginCaptures:
+                      0: {name: punctuation.definition.parameters.begin.dascript}
+                    end: \)
+                    endCaptures:
+                      0: {name: punctuation.definition.parameters.end.dascript}
+                    patterns:
+                      - name: entity.name.type.auto.typename.dascript
+                        match: \b([[:alnum:]_]+)\b
               - match: \b([[:alnum:]_]+)\b
                 name: entity.name.type.variant.argument.dascript
           - name: meta.template.argument.auto.dascript
             begin: \b(auto)\b
             beginCaptures:
-              1: {name: storage.type.auto.dascript}
+              1: {name: keyword.type.dascript}
             end: (?=\)|\>)
             patterns:
-              - name: entity.name.type.auto.typename.dscript
-                match: \b([[:alnum:]_]+)\b
+              - begin: \(
+                beginCaptures:
+                  0: {name: punctuation.definition.parameters.begin.dascript}
+                end: \)
+                endCaptures:
+                  0: {name: punctuation.definition.parameters.end.dascript}
+                patterns:
+                  - name: entity.name.type.auto.typename.dascript
+                    match: \b([[:alnum:]_]+)\b
           - name: meta.template.argument.dascript
             begin: \b([[:alnum:]_]+)\b
             beginCaptures:
