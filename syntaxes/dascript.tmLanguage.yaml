@@ -14,6 +14,7 @@ patterns:
   - include: '#builtin_functions_name'
   - include: '#builtin_functions_call'
   - include: '#qmacro_escape_sequences'
+  - include: '#qmacro_functions'
   - include: '#function_call'
   - include: '#function_no_args'
   - include: '#ternary_operator'
@@ -84,8 +85,8 @@ repository:
         name: storage.modifier.specifier.const.dascript
       - match: \b(iterator|array|fixed_array|table|smart_ptr|generator|tuple|table|variant|lambda|block|function)\b
         name: keyword.type.dascript
-      - name: storage.modifier.function.dascript
-        match: \$|\@
+      - name: storage.modifier.annotation.dascript
+        match: \@
       - name: storage.modifier.capture.dascript
         match: \b(capture)\b
       - name: keyword.operator.dascript
@@ -102,6 +103,33 @@ repository:
         match: (=|:=|<-)
       - name: keyword.operator.increment.dascript
         match: \+\+
+      - include: '#literals'
+  keywords_without_operators:
+    patterns:
+      - match: \b(while|if|static_if|else|for|uninitialized|recover|in|is|as|elif|static_elif|return|break|try|expect|operator|finally|deref|with|cast|upcast|addr|continue|where|pass|label|goto|implicit|explicit|unsafe|aka|sealed|yield|operator)\b
+        name: keyword.control.dascript
+      - match: \b(default)\b
+        name: storage.modifier.specifier.init.dascript
+      - match: \b(type|typename|typeinfo)\b
+        name: storage.modifier.specifier.init.dascript
+      - match: \b(var|let|assume)\b
+        name: storage.modifier.specifier.decl.dascript
+      - match: \b(inscope|static|shared|public|private|override)\b
+        name: storage.modifier.specifier.decl.attr.dascript
+      - match: \b(new|delete)\b
+        name: storage.modifier.specifier.alloc.dascript
+      - match: \b(reinterpret|upcast|cast)\b
+        name: storage.modifier.specifier.cast.dascript
+      - match: \b(const)\b
+        name: storage.modifier.specifier.const.dascript
+      - match: \b(struct|class)\b
+        name: storage.modifier.specifier.const.dascript
+      - match: \b(iterator|array|fixed_array|table|smart_ptr|generator|tuple|table|variant|lambda|block|function)\b
+        name: keyword.type.dascript
+      - name: storage.modifier.annotation.dascript
+        match: \@
+      - name: storage.modifier.capture.dascript
+        match: \b(capture)\b
       - include: '#literals'
   strings:
     patterns:
@@ -236,7 +264,24 @@ repository:
         patterns:
           - include: '#qmacro_escape_sequences'
           - include: '#generic_types'
-          - include: '#keywords'
+          - include: '#keywords_without_operators'
+          - include: '#builtin_types'
+          - match: \b([[:alnum:]_]+)\b
+            name: entity.name.type.dascript
+          - match: ';'
+            name: punctuation.separator.generic.dascript
+      - name: meta.generic.type.dascript
+        begin: \b(type|typename|typeinfo)\s*(<)
+        beginCaptures:
+          1: {name: storage.modifier.specifier.init.dascript}
+          2: {name: punctuation.definition.generic.begin.dascript}
+        end: (>)
+        endCaptures:
+          1: {name: punctuation.definition.generic.end.dascript}
+        patterns:
+          - include: '#qmacro_escape_sequences'
+          - include: '#generic_types'
+          - include: '#keywords_without_operators'
           - include: '#builtin_types'
           - match: \b([[:alnum:]_]+)\b
             name: entity.name.type.dascript
@@ -293,6 +338,11 @@ repository:
               name: variable.parameter.function.argument.dascript
             - include: '#strings'
             - include: $self
+  qmacro_functions:
+    name: meta.function-call.qmacro.dascript
+    match: \b(qmacro_block|qmacro|qmacro_function|qmacro_type|qmacro_template_class|qmacro_variable)\b
+    captures:
+      1: {name: entity.name.function}
   function_call:
     patterns:
       - name: meta.function-call.dascript
@@ -320,11 +370,20 @@ repository:
         end: (?:\<\|)
   qmacro_escape_sequences:
     patterns:
+      # Macro reification escape sequences: $e(), $v(), $i(), $t(), $a(), $c(), $b()
+      # $e - expression substitution
+      # $v - value substitution
+      # $i - identifier/iterator substitution
+      # $t - type substitution
+      # $a - argument array substitution
+      # $c - call name substitution
+      # $b - block/expression array substitution
       - name: meta.qmacro-escape.dascript
         begin: (\$)([ifevatcb])(\()
         beginCaptures:
-          1: {name: punctuation.definition.qmacro.dascript}
-          2: {name: entity.name.function}
+          # TODO: handle tuple<$i()> correctly
+          # 1: {name: keyword.other.dascript}
+          2: {name: support.function.macro.substitution.dascript}
           3: {name: punctuation.definition.arguments.begin.dascript}
         end: (\))
         endCaptures:
@@ -335,6 +394,9 @@ repository:
           - include: '#builtin_types'
           - match: \b([[:alpha:]_][[:alnum:]_]*)\b
             name: variable.parameter.dascript
+      # Lambda/block shorthand: $ or $(...)
+      - name: keyword.other.dascript
+        match: \$
   qmacro_block:
     patterns:
       - name: meta.qmacro.block.dascript
@@ -574,8 +636,8 @@ repository:
         begin: \b(?:(?<=block|lambda)\s*\<(?!\|)\s*)
         end: (?=\(|\>)
         patterns:
-          - include: '#qmacro_escape_sequences'
           - include: '#keywords'
+          - include: '#qmacro_escape_sequences'
           - include: '#builtin_types'
           - match: \b([[:alnum:]_]+)\b
             name: entity.name.type.dascript
