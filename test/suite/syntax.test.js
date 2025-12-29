@@ -1990,8 +1990,8 @@ suite('daScript Syntax Highlighting Tests', () => {
         // Test the 'i' character right after '$'
         const iPos = new vscode.Position(qmacroLine, dollarIIndex + 1);
         const iScopes = await getTokenScopesAt(document, qmacroLine, iPos.character);
-        const isIFunction = iScopes?.scopes?.some(scope => scope.includes('entity.name.function'));
-        assert.ok(isIFunction, `'i' in '$i' should be highlighted as entity.name.function. Got scopes: ${JSON.stringify(iScopes?.scopes)}`);
+        const isIMacroSubstitution = iScopes?.scopes?.some(scope => scope.includes('support.function.macro.substitution'));
+        assert.ok(isIMacroSubstitution, `'i' in '$i' should be highlighted as support.function.macro.substitution. Got scopes: ${JSON.stringify(iScopes?.scopes)}`);
 
         // Test 2: Verify 'iname' parameter is highlighted as variable.parameter, not entity.name.type
         const inameIndex = lineText.indexOf('$i(') + 3;
@@ -2016,8 +2016,8 @@ suite('daScript Syntax Highlighting Tests', () => {
         const dollarEIndex = eLineText.indexOf('$e(');
         const ePos = new vscode.Position(eLine, dollarEIndex + 1);
         const eScopes = await getTokenScopesAt(document, eLine, ePos.character);
-        const isEFunction = eScopes?.scopes?.some(scope => scope.includes('entity.name.function'));
-        assert.ok(isEFunction, `'e' in '$e' should be highlighted as entity.name.function. Got scopes: ${JSON.stringify(eScopes?.scopes)}`);
+        const isEMacroSubstitution = eScopes?.scopes?.some(scope => scope.includes('support.function.macro.substitution'));
+        assert.ok(isEMacroSubstitution, `'e' in '$e' should be highlighted as support.function.macro.substitution. Got scopes: ${JSON.stringify(eScopes?.scopes)}`);
 
         // Test 4: Verify $v escape sequence
         let vLine = -1;
@@ -2033,8 +2033,8 @@ suite('daScript Syntax Highlighting Tests', () => {
         const dollarVIndex = vLineText.indexOf('$v(');
         const vPos = new vscode.Position(vLine, dollarVIndex + 1);
         const vScopes = await getTokenScopesAt(document, vLine, vPos.character);
-        const isVFunction = vScopes?.scopes?.some(scope => scope.includes('entity.name.function'));
-        assert.ok(isVFunction, `'v' in '$v' should be highlighted as entity.name.function. Got scopes: ${JSON.stringify(vScopes?.scopes)}`);
+        const isVMacroSubstitution = vScopes?.scopes?.some(scope => scope.includes('support.function.macro.substitution'));
+        assert.ok(isVMacroSubstitution, `'v' in '$v' should be highlighted as support.function.macro.substitution. Got scopes: ${JSON.stringify(vScopes?.scopes)}`);
 
         console.log('✓ Qmacro escape sequences test passed');
     });
@@ -2553,5 +2553,198 @@ suite('daScript Syntax Highlighting Tests', () => {
         assert.ok(isHandlerTypeName, `'Handler' should be a type name. Got scopes: ${JSON.stringify(handlerScopes?.scopes)}`);
 
         console.log('✓ Typedef test passed');
+    });
+
+    test('Dollar sign $ symbol should highlight as keyword', async function() {
+        this.timeout(10000); // Increase timeout to 10 seconds
+        
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/template-functions.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: $i macro escape sequence
+        let dollarILine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('$i(iname)')) {
+                dollarILine = i;
+                break;
+            }
+        }
+        assert.ok(dollarILine >= 0, 'Should find line with $i(iname)');
+
+        const dollarIPos = findInLine(document, dollarILine, '$i');
+        const dollarIScopes = await getTokenScopesAt(document, dollarILine, dollarIPos.character);
+        const isDollarIKeyword = dollarIScopes?.scopes?.some(scope => 
+            scope.includes('keyword')
+        );
+        assert.ok(isDollarIKeyword, `'$' in $i should be a keyword. Got scopes: ${JSON.stringify(dollarIScopes?.scopes)}`);
+
+        // Test 2: $e macro escape sequence
+        let dollarELine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('$e(call.arguments[0])')) {
+                dollarELine = i;
+                break;
+            }
+        }
+        assert.ok(dollarELine >= 0, 'Should find line with $e(call.arguments[0])');
+
+        const dollarEPos = findInLine(document, dollarELine, '$e');
+        const dollarEScopes = await getTokenScopesAt(document, dollarELine, dollarEPos.character);
+        const isDollarEKeyword = dollarEScopes?.scopes?.some(scope => 
+            scope.includes('keyword')
+        );
+        assert.ok(isDollarEKeyword, `'$' in $e should be a keyword. Got scopes: ${JSON.stringify(dollarEScopes?.scopes)}`);
+
+        // Test 3: $v macro escape sequence
+        let dollarVLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('$v(counter)')) {
+                dollarVLine = i;
+                break;
+            }
+        }
+        assert.ok(dollarVLine >= 0, 'Should find line with $v(counter)');
+
+        const dollarVPos = findInLine(document, dollarVLine, '$v');
+        const dollarVScopes = await getTokenScopesAt(document, dollarVLine, dollarVPos.character);
+        const isDollarVKeyword = dollarVScopes?.scopes?.some(scope => 
+            scope.includes('keyword')
+        );
+        assert.ok(isDollarVKeyword, `'$' in $v should be a keyword. Got scopes: ${JSON.stringify(dollarVScopes?.scopes)}`);
+
+        // Test 4: Lambda shorthand $ in annotations.das
+        const annotationsUri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/annotations.das')
+        );
+        const annotationsDoc = await vscode.workspace.openTextDocument(annotationsUri);
+        await vscode.window.showTextDocument(annotationsDoc);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        let lambdaDollarLine = -1;
+        for (let i = 0; i < annotationsDoc.lineCount; i++) {
+            if (annotationsDoc.lineAt(i).text.includes('$ [es]')) {
+                lambdaDollarLine = i;
+                break;
+            }
+        }
+        assert.ok(lambdaDollarLine >= 0, 'Should find line with $ [es] lambda shorthand');
+
+        const lambdaDollarPos = findInLine(annotationsDoc, lambdaDollarLine, '$ [es]');
+        const lambdaDollarScopes = await getTokenScopesAt(annotationsDoc, lambdaDollarLine, lambdaDollarPos.character);
+        const isLambdaDollarKeyword = lambdaDollarScopes?.scopes?.some(scope => 
+            scope.includes('keyword')
+        );
+        assert.ok(isLambdaDollarKeyword, `'$' in lambda shorthand should be a keyword. Got scopes: ${JSON.stringify(lambdaDollarScopes?.scopes)}`);
+
+        console.log('✓ Dollar sign $ symbol test passed');
+    });
+
+    test('qmacro_block should highlight as function call', async function() {
+        this.timeout(5000);
+        
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/template-functions.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Find line with qmacro_block
+        let qmacroLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('qmacro_block <|')) {
+                qmacroLine = i;
+                break;
+            }
+        }
+        assert.ok(qmacroLine >= 0, 'Should find line with qmacro_block');
+
+        const qmacroPos = findInLine(document, qmacroLine, 'qmacro_block');
+        const qmacroScopes = await getTokenScopesAt(document, qmacroLine, qmacroPos.character);
+        const isQmacroFunction = qmacroScopes?.scopes?.some(scope => 
+            scope.includes('entity.name.function')
+        );
+        assert.ok(isQmacroFunction, `'qmacro_block' should be highlighted as entity.name.function. Got scopes: ${JSON.stringify(qmacroScopes?.scopes)}`);
+
+        console.log('✓ qmacro_block function call test passed');
+    });
+
+    test('type<> angle brackets should not be highlighted as operators', async function() {
+        this.timeout(5000);
+        
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/generator-types.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Find line with type<iterator<int>>
+        let typeLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('type<iterator<int>>')) {
+                typeLine = i;
+                break;
+            }
+        }
+        assert.ok(typeLine >= 0, 'Should find line with type<iterator<int>>');
+
+        // Test 1: The first < after type should have meta.generic.type.dascript
+        const lineText = document.lineAt(typeLine).text;
+        const firstAngleIndex = lineText.indexOf('type<');
+        const firstAnglePos = new vscode.Position(typeLine, firstAngleIndex + 4); // Position of first <
+        const firstAngleScopes = await getTokenScopesAt(document, typeLine, firstAnglePos.character);
+        
+        const isNotOperator = !firstAngleScopes?.scopes?.some(scope => 
+            scope.includes('keyword.operator')
+        );
+        const isPunctuation = firstAngleScopes?.scopes?.some(scope => 
+            scope.includes('punctuation.definition.generic')
+        );
+        const hasTypeScope = firstAngleScopes?.scopes?.some(scope => 
+            scope.includes('meta.generic.type.dascript')
+        );
+        
+        assert.ok(isNotOperator, `First '<' in type<> should NOT be highlighted as keyword.operator. Got scopes: ${JSON.stringify(firstAngleScopes?.scopes)}`);
+        assert.ok(isPunctuation, `First '<' in type<> should be highlighted as punctuation.definition.generic. Got scopes: ${JSON.stringify(firstAngleScopes?.scopes)}`);
+        assert.ok(hasTypeScope, `First '<' should have meta.generic.type.dascript scope. Got scopes: ${JSON.stringify(firstAngleScopes?.scopes)}`);
+
+        // Test 2: The second < after iterator should have both meta.generic.dascript and meta.generic.type.dascript
+        const secondAngleIndex = lineText.indexOf('iterator<');
+        const secondAnglePos = new vscode.Position(typeLine, secondAngleIndex + 8); // Position of second <
+        const secondAngleScopes = await getTokenScopesAt(document, typeLine, secondAnglePos.character);
+        
+        const secondIsNotOperator = !secondAngleScopes?.scopes?.some(scope => 
+            scope.includes('keyword.operator')
+        );
+        const secondIsPunctuation = secondAngleScopes?.scopes?.some(scope => 
+            scope.includes('punctuation.definition.generic')
+        );
+        const hasGenericScope = secondAngleScopes?.scopes?.some(scope => 
+            scope === 'meta.generic.dascript'
+        );
+        const hasTypeGenericScope = secondAngleScopes?.scopes?.some(scope => 
+            scope === 'meta.generic.type.dascript'
+        );
+        
+        assert.ok(secondIsNotOperator, `Second '<' in iterator<> should NOT be highlighted as keyword.operator. Got scopes: ${JSON.stringify(secondAngleScopes?.scopes)}`);
+        assert.ok(secondIsPunctuation, `Second '<' should be highlighted as punctuation.definition.generic. Got scopes: ${JSON.stringify(secondAngleScopes?.scopes)}`);
+        assert.ok(hasGenericScope, `Second '<' should have meta.generic.dascript scope. Got scopes: ${JSON.stringify(secondAngleScopes?.scopes)}`);
+        assert.ok(hasTypeGenericScope, `Second '<' should inherit meta.generic.type.dascript scope from parent. Got scopes: ${JSON.stringify(secondAngleScopes?.scopes)}`);
+
+        console.log('✓ type<> angle brackets test passed');
     });
 });

@@ -46,3 +46,9 @@ def generic_test()
     var arr : array<float>
     if length(arr) > 0
         print("array has elements")
+
+// Type keyword with generic parameters
+def test_type_generic()
+    var t = type<iterator<int>>
+    var t2 = type<array<string>>
+    return typename(t)
