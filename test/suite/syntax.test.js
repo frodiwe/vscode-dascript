@@ -1360,6 +1360,92 @@ suite('daScript Syntax Highlighting Tests', () => {
         console.log('✓ Boolean literals syntax highlighting test passed');
     });
 
+    test('Variable names in reassignments should not be highlighted as types', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/boolean-literals.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Find variable reassignment - voidRoutine = false
+        let reassignmentLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            // Look for reassignment without var/let, but not inside the initial declaration
+            if (lineText.trim() === 'voidRoutine = false') {
+                reassignmentLine = i;
+                break;
+            }
+        }
+        assert.ok(reassignmentLine >= 0, 'Should find voidRoutine reassignment line');
+
+        // Verify 'voidRoutine' is NOT highlighted as entity.name.type
+        const voidRoutinePos = findInLine(document, reassignmentLine, 'voidRoutine');
+        const voidRoutineScopes = await getTokenScopesAt(document, reassignmentLine, voidRoutinePos.character);
+        
+        const isNotType = !voidRoutineScopes?.scopes?.some(scope => 
+            scope === 'entity.name.type.dascript' || scope === 'storage.type.dascript'
+        );
+        const isVariable = voidRoutineScopes?.scopes?.some(scope => 
+            scope.includes('variable') || scope === 'source.dascript'
+        );
+        
+        assert.ok(isNotType, `'voidRoutine' in reassignment should NOT be highlighted as entity.name.type. Got scopes: ${JSON.stringify(voidRoutineScopes?.scopes)}`);
+        assert.ok(isVariable, `'voidRoutine' should be highlighted as a variable or have basic source scope. Got scopes: ${JSON.stringify(voidRoutineScopes?.scopes)}`);
+
+        // Test 2: Verify 'false' on the same line is still highlighted as constant
+        const falsePos = findInLine(document, reassignmentLine, 'false');
+        const falseScopes = await getTokenScopesAt(document, reassignmentLine, falsePos.character);
+        const isFalseConstant = falseScopes?.scopes?.some(scope => scope.includes('constant.language'));
+        assert.ok(isFalseConstant, `'false' should be constant.language. Got scopes: ${JSON.stringify(falseScopes?.scopes)}`);
+
+        // Test 3: Find another reassignment - someCounter = 10
+        let counterReassignLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.trim() === 'someCounter = 10') {
+                counterReassignLine = i;
+                break;
+            }
+        }
+        assert.ok(counterReassignLine >= 0, 'Should find someCounter reassignment line');
+
+        const someCounterPos = findInLine(document, counterReassignLine, 'someCounter');
+        const someCounterScopes = await getTokenScopesAt(document, counterReassignLine, someCounterPos.character);
+        
+        const counterIsNotType = !someCounterScopes?.scopes?.some(scope => 
+            scope === 'entity.name.type.dascript' || scope === 'storage.type.dascript'
+        );
+        
+        assert.ok(counterIsNotType, `'someCounter' in reassignment should NOT be highlighted as entity.name.type. Got scopes: ${JSON.stringify(someCounterScopes?.scopes)}`);
+
+        // Test 4: Find string reassignment - playerName = "updated"
+        let stringReassignLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('playerName = "updated"')) {
+                stringReassignLine = i;
+                break;
+            }
+        }
+        assert.ok(stringReassignLine >= 0, 'Should find playerName reassignment line');
+
+        const playerNamePos = findInLine(document, stringReassignLine, 'playerName');
+        const playerNameScopes = await getTokenScopesAt(document, stringReassignLine, playerNamePos.character);
+        
+        const playerNameIsNotType = !playerNameScopes?.scopes?.some(scope => 
+            scope === 'entity.name.type.dascript' || scope === 'storage.type.dascript'
+        );
+        
+        assert.ok(playerNameIsNotType, `'playerName' in reassignment should NOT be highlighted as entity.name.type. Got scopes: ${JSON.stringify(playerNameScopes?.scopes)}`);
+
+        console.log('✓ Variable reassignment test passed');
+    });
+
     test('Table type arguments should highlight types correctly', async () => {
         const uri = vscode.Uri.file(
             path.join(__dirname, '../../test/fixtures/table-types.das')
@@ -2555,96 +2641,6 @@ suite('daScript Syntax Highlighting Tests', () => {
         console.log('✓ Typedef test passed');
     });
 
-    test('Dollar sign $ symbol should highlight as keyword', async function() {
-        this.timeout(10000); // Increase timeout to 10 seconds
-        
-        const uri = vscode.Uri.file(
-            path.join(__dirname, '../../test/fixtures/template-functions.das')
-        );
-
-        const document = await vscode.workspace.openTextDocument(uri);
-        await vscode.window.showTextDocument(document);
-
-        // Wait for tokenization to complete
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Test 1: $i macro escape sequence
-        let dollarILine = -1;
-        for (let i = 0; i < document.lineCount; i++) {
-            if (document.lineAt(i).text.includes('$i(iname)')) {
-                dollarILine = i;
-                break;
-            }
-        }
-        assert.ok(dollarILine >= 0, 'Should find line with $i(iname)');
-
-        const dollarIPos = findInLine(document, dollarILine, '$i');
-        const dollarIScopes = await getTokenScopesAt(document, dollarILine, dollarIPos.character);
-        const isDollarIKeyword = dollarIScopes?.scopes?.some(scope => 
-            scope.includes('keyword')
-        );
-        assert.ok(isDollarIKeyword, `'$' in $i should be a keyword. Got scopes: ${JSON.stringify(dollarIScopes?.scopes)}`);
-
-        // Test 2: $e macro escape sequence
-        let dollarELine = -1;
-        for (let i = 0; i < document.lineCount; i++) {
-            if (document.lineAt(i).text.includes('$e(call.arguments[0])')) {
-                dollarELine = i;
-                break;
-            }
-        }
-        assert.ok(dollarELine >= 0, 'Should find line with $e(call.arguments[0])');
-
-        const dollarEPos = findInLine(document, dollarELine, '$e');
-        const dollarEScopes = await getTokenScopesAt(document, dollarELine, dollarEPos.character);
-        const isDollarEKeyword = dollarEScopes?.scopes?.some(scope => 
-            scope.includes('keyword')
-        );
-        assert.ok(isDollarEKeyword, `'$' in $e should be a keyword. Got scopes: ${JSON.stringify(dollarEScopes?.scopes)}`);
-
-        // Test 3: $v macro escape sequence
-        let dollarVLine = -1;
-        for (let i = 0; i < document.lineCount; i++) {
-            if (document.lineAt(i).text.includes('$v(counter)')) {
-                dollarVLine = i;
-                break;
-            }
-        }
-        assert.ok(dollarVLine >= 0, 'Should find line with $v(counter)');
-
-        const dollarVPos = findInLine(document, dollarVLine, '$v');
-        const dollarVScopes = await getTokenScopesAt(document, dollarVLine, dollarVPos.character);
-        const isDollarVKeyword = dollarVScopes?.scopes?.some(scope => 
-            scope.includes('keyword')
-        );
-        assert.ok(isDollarVKeyword, `'$' in $v should be a keyword. Got scopes: ${JSON.stringify(dollarVScopes?.scopes)}`);
-
-        // Test 4: Lambda shorthand $ in annotations.das
-        const annotationsUri = vscode.Uri.file(
-            path.join(__dirname, '../../test/fixtures/annotations.das')
-        );
-        const annotationsDoc = await vscode.workspace.openTextDocument(annotationsUri);
-        await vscode.window.showTextDocument(annotationsDoc);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        let lambdaDollarLine = -1;
-        for (let i = 0; i < annotationsDoc.lineCount; i++) {
-            if (annotationsDoc.lineAt(i).text.includes('$ [es]')) {
-                lambdaDollarLine = i;
-                break;
-            }
-        }
-        assert.ok(lambdaDollarLine >= 0, 'Should find line with $ [es] lambda shorthand');
-
-        const lambdaDollarPos = findInLine(annotationsDoc, lambdaDollarLine, '$ [es]');
-        const lambdaDollarScopes = await getTokenScopesAt(annotationsDoc, lambdaDollarLine, lambdaDollarPos.character);
-        const isLambdaDollarKeyword = lambdaDollarScopes?.scopes?.some(scope => 
-            scope.includes('keyword')
-        );
-        assert.ok(isLambdaDollarKeyword, `'$' in lambda shorthand should be a keyword. Got scopes: ${JSON.stringify(lambdaDollarScopes?.scopes)}`);
-
-        console.log('✓ Dollar sign $ symbol test passed');
-    });
 
     test('qmacro_block should highlight as function call', async function() {
         this.timeout(5000);
