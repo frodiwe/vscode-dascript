@@ -28,3 +28,11 @@ typedef
     Type1 = int
     Type2=string
     Type3   =   bool
+
+// Lambda, block, and function signatures
+typedef
+    SimpleCallback = lambda<(x: int): void>
+    BlockWithMultiParams = block<(name: string; age: int; active: bool): bool>
+    FunctionWithReturn = function<(data: float; count: uint): string>
+    LambdaNoParams = lambda<(): int>
+    BlockVoidReturn = block<(id: int64): void>
