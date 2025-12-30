@@ -289,8 +289,31 @@ repository:
           - include: '#generic_types'
           - match: \b([[:alnum:]_]+)\b
             name: entity.name.type.dascript
+      - name: meta.generic.tuple.dascript
+        begin: \b(tuple)\s*(<)
+        beginCaptures:
+          1: {name: keyword.type.dascript}
+          2: {name: punctuation.definition.generic.begin.dascript}
+        end: (>)
+        endCaptures:
+          1: {name: punctuation.definition.generic.end.dascript}
+        patterns:
+          - include: '#qmacro_escape_sequences'
+          - include: '#generic_types'
+          - name: meta.tuple.field.dascript
+            match: \b([[:alpha:]_][[:alnum:]_]*)\s*(:)
+            captures:
+              1: {name: variable.parameter.dascript}
+              2: {name: punctuation.separator.type.dascript}
+          - include: '#builtin_types'
+          - match: \b([[:alnum:]_]+)\b
+            name: entity.name.type.dascript
+          - match: ','
+            name: punctuation.separator.tuple.dascript
+          - match: ';'
+            name: punctuation.separator.generic.dascript
       - name: meta.generic.dascript
-        begin: \b(iterator|array|fixed_array|table|smart_ptr|generator|tuple|variant)\s*(<)
+        begin: \b(iterator|array|fixed_array|table|smart_ptr|generator|variant)\s*(<)
         beginCaptures:
           1: {name: keyword.type.dascript}
           2: {name: punctuation.definition.generic.begin.dascript}
