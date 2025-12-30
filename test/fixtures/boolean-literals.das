@@ -30,3 +30,25 @@ def test_booleans()
     // Boolean with null
     let nullValue = null
     let hasValue = value != null ? true : false
+
+// Test for variable assignment without var/let (reassignment)
+def test_variable_reassignment()
+    var voidRoutine = true
+    var someCounter = 0
+    var playerName = "test"
+    var isEnabled = true
+    
+    // Reassignment without var/let - variable names should NOT be highlighted as types
+    voidRoutine = false
+    someCounter = 10
+    playerName = "updated"
+    isEnabled = false
+    
+    // Reassignment with expressions
+    voidRoutine = someCounter > 5
+    someCounter = someCounter + 1
+    
+    // Multiple assignments
+    voidRoutine = false
+    voidRoutine = true
+    voidRoutine = !voidRoutine
