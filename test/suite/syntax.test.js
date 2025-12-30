@@ -2638,6 +2638,215 @@ suite('daScript Syntax Highlighting Tests', () => {
         );
         assert.ok(isHandlerTypeName, `'Handler' should be a type name. Got scopes: ${JSON.stringify(handlerScopes?.scopes)}`);
 
+        // Test 5: Built-in types in typedef should be highlighted as types
+        // Find line with bool in typedef block
+        let boolInTypedefLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            const lineText = document.lineAt(i).text;
+            if (lineText.includes('Coroutine = iterator<bool>')) {
+                boolInTypedefLine = i;
+                break;
+            }
+        }
+        assert.ok(boolInTypedefLine >= 0, 'Should find bool in typedef block');
+
+        // Test that 'bool' inside iterator<bool> is highlighted as a type
+        const boolPos = findInLine(document, boolInTypedefLine, 'bool');
+        const boolScopes = await getTokenScopesAt(document, boolInTypedefLine, boolPos.character);
+        const isBoolType = boolScopes?.scopes?.some(scope => 
+            scope.includes('support.type.dascript')
+        );
+        assert.ok(isBoolType, `'bool' in typedef should be highlighted as a type. Got scopes: ${JSON.stringify(boolScopes?.scopes)}`);
+
+        // Test 6: Test bool in TupleType = tuple<int; string; bool>
+        let tupleTypeLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('TupleType = tuple<int; string; bool>')) {
+                tupleTypeLine = i;
+                break;
+            }
+        }
+        assert.ok(tupleTypeLine >= 0, 'Should find TupleType with bool');
+
+        // Find the bool in the tuple
+        const lineText = document.lineAt(tupleTypeLine).text;
+        const boolIndex = lineText.lastIndexOf('bool'); // Get the bool in tuple, not the one before
+        const tupleBoolScopes = await getTokenScopesAt(document, tupleTypeLine, boolIndex);
+        const isTupleBoolType = tupleBoolScopes?.scopes?.some(scope => 
+            scope.includes('support.type.dascript')
+        );
+        assert.ok(isTupleBoolType, `'bool' in tuple should be highlighted as a type. Got scopes: ${JSON.stringify(tupleBoolScopes?.scopes)}`);
+
+        // Test 7: Test standalone bool in typedef (Type3 = bool)
+        let type3Line = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.trim().match(/^Type3\s*=\s*bool/)) {
+                type3Line = i;
+                break;
+            }
+        }
+        assert.ok(type3Line >= 0, 'Should find Type3 = bool line');
+
+        const type3BoolPos = findInLine(document, type3Line, 'bool');
+        const type3BoolScopes = await getTokenScopesAt(document, type3Line, type3BoolPos.character);
+        const isType3BoolType = type3BoolScopes?.scopes?.some(scope => 
+            scope.includes('support.type.dascript')
+        );
+        assert.ok(isType3BoolType, `'bool' as standalone type should be highlighted as a type. Got scopes: ${JSON.stringify(type3BoolScopes?.scopes)}`);
+
+        // Test 8: Lambda type with function signature - lambda<(x: int): int>
+        let lambdaTypeLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('LambdaType = lambda<(x: int): int>')) {
+                lambdaTypeLine = i;
+                break;
+            }
+        }
+        assert.ok(lambdaTypeLine >= 0, 'Should find LambdaType with lambda signature');
+
+        // Test parameter name 'x' is highlighted as variable.parameter
+        const xPos = document.lineAt(lambdaTypeLine).text.indexOf('(x');
+        const xScopes = await getTokenScopesAt(document, lambdaTypeLine, xPos + 1);
+        const isXParameter = xScopes?.scopes?.some(scope => 
+            scope.includes('variable.parameter.dascript')
+        );
+        assert.ok(isXParameter, `'x' in lambda signature should be a parameter. Got scopes: ${JSON.stringify(xScopes?.scopes)}`);
+
+        // Test parameter type 'int' (first one after colon) is highlighted as type
+        const lambdaLineText = document.lineAt(lambdaTypeLine).text;
+        const firstIntIndex = lambdaLineText.indexOf(': int');
+        const paramIntScopes = await getTokenScopesAt(document, lambdaTypeLine, firstIntIndex + 2);
+        const isParamIntType = paramIntScopes?.scopes?.some(scope => 
+            scope.includes('entity.name.type.dascript') || scope.includes('support.type.dascript')
+        );
+        assert.ok(isParamIntType, `'int' parameter type in lambda should be highlighted as type. Got scopes: ${JSON.stringify(paramIntScopes?.scopes)}`);
+
+        // Test return type 'int' (after closing paren) is highlighted as type
+        const returnIntIndex = lambdaLineText.indexOf('): int');
+        const returnIntScopes = await getTokenScopesAt(document, lambdaTypeLine, returnIntIndex + 3);
+        const isReturnIntType = returnIntScopes?.scopes?.some(scope => 
+            scope.includes('entity.name.type.dascript') || scope.includes('support.type.dascript')
+        );
+        assert.ok(isReturnIntType, `'int' return type in lambda should be highlighted as type. Got scopes: ${JSON.stringify(returnIntScopes?.scopes)}`);
+
+        // Test 9: Multiple parameters in block - block<(name: string; age: int; active: bool): bool>
+        let blockMultiParamsLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('BlockWithMultiParams = block<(name: string; age: int; active: bool): bool>')) {
+                blockMultiParamsLine = i;
+                break;
+            }
+        }
+        assert.ok(blockMultiParamsLine >= 0, 'Should find BlockWithMultiParams');
+
+        const blockLineText = document.lineAt(blockMultiParamsLine).text;
+        
+        // Test first parameter 'name'
+        const namePos = blockLineText.indexOf('(name');
+        const nameScopes = await getTokenScopesAt(document, blockMultiParamsLine, namePos + 1);
+        const isNameParameter = nameScopes?.scopes?.some(scope => 
+            scope.includes('variable.parameter.dascript')
+        );
+        assert.ok(isNameParameter, `'name' should be highlighted as parameter. Got scopes: ${JSON.stringify(nameScopes?.scopes)}`);
+
+        // Test second parameter 'age'
+        const agePos = blockLineText.indexOf('age: int');
+        const ageScopes = await getTokenScopesAt(document, blockMultiParamsLine, agePos);
+        const isAgeParameter = ageScopes?.scopes?.some(scope => 
+            scope.includes('variable.parameter.dascript')
+        );
+        assert.ok(isAgeParameter, `'age' should be highlighted as parameter. Got scopes: ${JSON.stringify(ageScopes?.scopes)}`);
+
+        // Test 'string' type
+        const stringPos = blockLineText.indexOf('name: string');
+        const stringScopes = await getTokenScopesAt(document, blockMultiParamsLine, stringPos + 6);
+        const isStringType = stringScopes?.scopes?.some(scope => 
+            scope.includes('entity.name.type.dascript') || scope.includes('support.type.dascript')
+        );
+        assert.ok(isStringType, `'string' type should be highlighted as type. Got scopes: ${JSON.stringify(stringScopes?.scopes)}`);
+
+        // Test 'bool' return type
+        const boolReturnPos = blockLineText.indexOf('): bool');
+        const boolReturnScopes = await getTokenScopesAt(document, blockMultiParamsLine, boolReturnPos + 3);
+        const isBoolReturnType = boolReturnScopes?.scopes?.some(scope => 
+            scope.includes('support.type.dascript')
+        );
+        assert.ok(isBoolReturnType, `'bool' return type should be highlighted as type. Got scopes: ${JSON.stringify(boolReturnScopes?.scopes)}`);
+
+        // Test 10: Function with different types - function<(data: float; count: uint): string>
+        let functionLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('FunctionWithReturn = function<(data: float; count: uint): string>')) {
+                functionLine = i;
+                break;
+            }
+        }
+        assert.ok(functionLine >= 0, 'Should find FunctionWithReturn');
+
+        const functionLineText = document.lineAt(functionLine).text;
+        
+        // Test 'float' type
+        const floatPos = functionLineText.indexOf('data: float');
+        const floatScopes = await getTokenScopesAt(document, functionLine, floatPos + 6);
+        const isFloatType = floatScopes?.scopes?.some(scope => 
+            scope.includes('support.type.dascript')
+        );
+        assert.ok(isFloatType, `'float' type should be highlighted as type. Got scopes: ${JSON.stringify(floatScopes?.scopes)}`);
+
+        // Test 'uint' type
+        const uintPos = functionLineText.indexOf('count: uint');
+        const uintScopes = await getTokenScopesAt(document, functionLine, uintPos + 7);
+        const isUintType = uintScopes?.scopes?.some(scope => 
+            scope.includes('support.type.dascript')
+        );
+        assert.ok(isUintType, `'uint' type should be highlighted as type. Got scopes: ${JSON.stringify(uintScopes?.scopes)}`);
+
+        // Test 11: Lambda with no parameters - lambda<(): int>
+        let lambdaNoParamsLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('LambdaNoParams = lambda<(): int>')) {
+                lambdaNoParamsLine = i;
+                break;
+            }
+        }
+        assert.ok(lambdaNoParamsLine >= 0, 'Should find LambdaNoParams');
+
+        const lambdaNoParamsText = document.lineAt(lambdaNoParamsLine).text;
+        const noParamsIntPos = lambdaNoParamsText.indexOf('(): int');
+        const noParamsIntScopes = await getTokenScopesAt(document, lambdaNoParamsLine, noParamsIntPos + 4);
+        const isNoParamsIntType = noParamsIntScopes?.scopes?.some(scope => 
+            scope.includes('support.type.dascript') || scope.includes('entity.name.type.dascript')
+        );
+        assert.ok(isNoParamsIntType, `'int' return type in lambda<(): int> should be highlighted as type. Got scopes: ${JSON.stringify(noParamsIntScopes?.scopes)}`);
+
+        // Test 12: Block with void return - block<(id: int64): void>
+        let blockVoidLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('BlockVoidReturn = block<(id: int64): void>')) {
+                blockVoidLine = i;
+                break;
+            }
+        }
+        assert.ok(blockVoidLine >= 0, 'Should find BlockVoidReturn');
+
+        const blockVoidText = document.lineAt(blockVoidLine).text;
+        
+        // Test 'int64' type
+        const int64Pos = blockVoidText.indexOf('id: int64');
+        const int64Scopes = await getTokenScopesAt(document, blockVoidLine, int64Pos + 4);
+        const isInt64Type = int64Scopes?.scopes?.some(scope => 
+            scope.includes('support.type.dascript')
+        );
+        assert.ok(isInt64Type, `'int64' type should be highlighted as type. Got scopes: ${JSON.stringify(int64Scopes?.scopes)}`);
+
+        // Test 'void' return type
+        const voidPos = blockVoidText.indexOf('): void');
+        const voidScopes = await getTokenScopesAt(document, blockVoidLine, voidPos + 3);
+        const isVoidType = voidScopes?.scopes?.some(scope => 
+            scope.includes('support.type.dascript')
+        );
+        assert.ok(isVoidType, `'void' return type should be highlighted as type. Got scopes: ${JSON.stringify(voidScopes?.scopes)}`);
+
         console.log('✓ Typedef test passed');
     });
 

@@ -543,6 +543,87 @@
     "generic_types": {
       "patterns": [
         {
+          "name": "meta.generic.lambda.dascript",
+          "begin": "\\b(lambda|block|function)\\s*(<)",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.type.dascript"
+            },
+            "2": {
+              "name": "punctuation.definition.generic.begin.dascript"
+            }
+          },
+          "end": "(>)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.generic.end.dascript"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#qmacro_escape_sequences"
+            },
+            {
+              "name": "meta.function.signature.dascript",
+              "begin": "\\(",
+              "beginCaptures": {
+                "0": {
+                  "name": "punctuation.definition.parameters.begin.dascript"
+                }
+              },
+              "end": "\\)",
+              "endCaptures": {
+                "0": {
+                  "name": "punctuation.definition.parameters.end.dascript"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "#builtin_types"
+                },
+                {
+                  "name": "meta.parameter.dascript",
+                  "match": "\\b([[:alpha:]_][[:alnum:]_]*)\\s*(:)",
+                  "captures": {
+                    "1": {
+                      "name": "variable.parameter.dascript"
+                    },
+                    "2": {
+                      "name": "punctuation.separator.type.dascript"
+                    }
+                  }
+                },
+                {
+                  "match": "\\b([[:alnum:]_]+)\\b",
+                  "name": "entity.name.type.dascript"
+                },
+                {
+                  "match": ":",
+                  "name": "punctuation.separator.type.dascript"
+                },
+                {
+                  "match": ";",
+                  "name": "punctuation.separator.parameters.dascript"
+                }
+              ]
+            },
+            {
+              "match": ":",
+              "name": "punctuation.separator.return-type.dascript"
+            },
+            {
+              "include": "#builtin_types"
+            },
+            {
+              "include": "#generic_types"
+            },
+            {
+              "match": "\\b([[:alnum:]_]+)\\b",
+              "name": "entity.name.type.dascript"
+            }
+          ]
+        },
+        {
           "name": "meta.generic.dascript",
           "begin": "\\b(iterator|array|fixed_array|table|smart_ptr|generator|tuple|variant)\\s*(<)",
           "beginCaptures": {
@@ -754,7 +835,7 @@
           "begin": "(\\$)([ifevatcb])(\\()",
           "beginCaptures": {
             "2": {
-              "name": "support.function.macro.substitution.dascript"
+              "name": "keyword.control.dascript"
             },
             "3": {
               "name": "punctuation.definition.arguments.begin.dascript"
@@ -879,6 +960,9 @@
         },
         {
           "include": "#strings"
+        },
+        {
+          "include": "#qmacro_escape_sequences"
         },
         {
           "include": "#template"
@@ -1264,7 +1348,10 @@
               }
             },
             {
-              "include": "#types"
+              "include": "#generic_types"
+            },
+            {
+              "include": "#builtin_types"
             },
             {
               "include": "#keywords"
