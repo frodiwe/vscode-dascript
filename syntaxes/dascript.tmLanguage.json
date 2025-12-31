@@ -892,7 +892,7 @@
     },
     "qmacro_functions": {
       "name": "meta.function-call.qmacro.dascript",
-      "match": "\\b(qmacro_block|qmacro|qmacro_function|qmacro_type|qmacro_template_class|qmacro_variable)\\b",
+      "match": "\\b(qmacro_block|qmacro|qmacro_function|qmacro_type|qmacro_template_class|qmacro_variable|qmacro_expr)\\b",
       "captures": {
         "1": {
           "name": "entity.name.function"
