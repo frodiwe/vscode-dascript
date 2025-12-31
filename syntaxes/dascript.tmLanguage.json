@@ -704,6 +704,55 @@
               "include": "#keywords_without_operators"
             },
             {
+              "name": "meta.variant.field.dascript",
+              "begin": "\\b([[:alpha:]_][[:alnum:]_]*)\\s*(:)",
+              "beginCaptures": {
+                "1": {
+                  "name": "variable.parameter.variant.identifier.dascript"
+                },
+                "2": {
+                  "name": "punctuation.separator.type.dascript"
+                }
+              },
+              "end": "(?=;|>)",
+              "patterns": [
+                {
+                  "name": "meta.type.auto.parameterized.variant.dascript",
+                  "begin": "\\b(auto)\\s*(\\()",
+                  "beginCaptures": {
+                    "1": {
+                      "name": "keyword.type.dascript"
+                    },
+                    "2": {
+                      "name": "punctuation.definition.parameters.begin.dascript"
+                    }
+                  },
+                  "end": "(\\))",
+                  "endCaptures": {
+                    "1": {
+                      "name": "punctuation.definition.parameters.end.dascript"
+                    }
+                  },
+                  "patterns": [
+                    {
+                      "name": "entity.name.type.auto.typename.dascript",
+                      "match": "\\b([[:alnum:]_]+)\\b"
+                    }
+                  ]
+                },
+                {
+                  "include": "#builtin_types"
+                },
+                {
+                  "include": "#generic_types"
+                },
+                {
+                  "match": "\\b([[:alnum:]_]+)\\b",
+                  "name": "entity.name.type.dascript"
+                }
+              ]
+            },
+            {
               "include": "#builtin_types"
             },
             {
@@ -763,6 +812,30 @@
         {
           "name": "support.type.dascript",
           "match": "(?x) (?<!\\.) \\b( bool | void | string | int | int2 | int3 | int4 | uint | uint2 | uint3 | uint4 | float | float2 | float3 | float4 | range | urange | int64 | uint64 | double | int8 | uint8 | int16 | uint16) \\b(?!(\\s*\\())"
+        },
+        {
+          "name": "meta.type.auto.parameterized.dascript",
+          "begin": "\\b(auto)\\s*(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.type.dascript"
+            },
+            "2": {
+              "name": "punctuation.definition.parameters.begin.dascript"
+            }
+          },
+          "end": "(\\))",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.parameters.end.dascript"
+            }
+          },
+          "patterns": [
+            {
+              "name": "entity.name.type.auto.typename.dascript",
+              "match": "\\b([[:alnum:]_]+)\\b"
+            }
+          ]
         },
         {
           "name": "support.type.auto.dascript",
@@ -997,12 +1070,9 @@
     },
     "function_return_type": {
       "name": "meta.function.return-type.dascript",
-      "begin": "(?<=\\))(\\s*)(:)|(?<=[[:alnum:]_])(\\s*)(:)",
+      "begin": "(?<=\\))(\\s*)(:)",
       "beginCaptures": {
         "2": {
-          "name": "punctuation.separator.return-type.dascript"
-        },
-        "4": {
           "name": "punctuation.separator.return-type.dascript"
         }
       },
@@ -1025,6 +1095,9 @@
         },
         {
           "include": "#builtin_types"
+        },
+        {
+          "include": "#generic_types"
         },
         {
           "match": "([[:alnum:]_]+)",

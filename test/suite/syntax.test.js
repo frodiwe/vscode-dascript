@@ -818,6 +818,70 @@ suite('daScript Syntax Highlighting Tests', () => {
         }
         assert.ok(serializeLine >= 0, 'Should find serialize function declaration');
 
+        // Test 6: Variables/identifiers after return type should NOT be highlighted as types
+        // AND parameter names should NOT be highlighted as entity.name.type
+        // def normalizeAngle(delta: float, ang: float, PI: float, TWO_PI: float) : float
+        //     return abs(delta) > PI ? ang + (delta > 0.f ? 1.f : -1.f) * TWO_PI : ang
+        let normalizeAngleLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def normalizeAngle')) {
+                normalizeAngleLine = i;
+                break;
+            }
+        }
+        
+        if (normalizeAngleLine >= 0) {
+            const declLineText = document.lineAt(normalizeAngleLine).text;
+            
+            // Test that 'ang' parameter (before the colon) is NOT entity.name.type
+            // Looking for: ang: float in the parameter list
+            const angParamMatch = declLineText.match(/,\s*(ang)\s*:/);
+            if (angParamMatch) {
+                const angParamIndex = declLineText.indexOf(angParamMatch[0]) + angParamMatch[0].indexOf('ang');
+                const angParamScopes = await getTokenScopesAt(document, normalizeAngleLine, angParamIndex);
+                
+                // 'ang' parameter should NOT be entity.name.type.dascript
+                const angParamIsNotType = !angParamScopes?.scopes?.some(scope =>
+                    scope === 'entity.name.type.dascript'
+                );
+                
+                // It should be a variable parameter
+                const angParamIsParameter = angParamScopes?.scopes?.some(scope =>
+                    scope.includes('variable.parameter')
+                );
+                
+                assert.ok(angParamIsNotType, `'ang' parameter should NOT be highlighted as entity.name.type. Got scopes: ${JSON.stringify(angParamScopes?.scopes)}`);
+                assert.ok(angParamIsParameter, `'ang' parameter should be highlighted as variable.parameter. Got scopes: ${JSON.stringify(angParamScopes?.scopes)}`);
+            }
+            
+            // Find the line with 'ang' that comes after the return statement
+            let returnLine = normalizeAngleLine + 1;
+            if (returnLine < document.lineCount) {
+                const returnLineText = document.lineAt(returnLine).text;
+                if (returnLineText.includes('ang')) {
+                    // Find the first 'ang' in the return statement (not in parameter list)
+                    // Looking for: return abs(delta) > PI ? ang + ...
+                    const angMatch = returnLineText.match(/\?\s*(ang)\s*\+/);
+                    if (angMatch) {
+                        const angIndex = returnLineText.indexOf(angMatch[0]) + angMatch[0].indexOf('ang');
+                        const angScopes = await getTokenScopesAt(document, returnLine, angIndex);
+                        
+                        // 'ang' should NOT be highlighted as entity.name.type
+                        const angIsNotType = !angScopes?.scopes?.some(scope =>
+                            scope === 'entity.name.type.dascript'
+                        );
+                        
+                        // It should be a variable or identifier
+                        const angIsVariableOrIdentifier = angScopes?.scopes?.some(scope =>
+                            scope.includes('variable') || scope.includes('identifier')
+                        ) || angScopes?.scopes?.length <= 2; // Just source.dascript and maybe one more
+                        
+                        assert.ok(angIsNotType, `'ang' in return statement should NOT be highlighted as entity.name.type. Got scopes: ${JSON.stringify(angScopes?.scopes)}`);
+                    }
+                }
+            }
+        }
+
         // Verify first 'var' is highlighted as a storage modifier, not a type
         const firstVarPos = findInLine(document, serializeLine, 'var');
         const firstVarScopes = await getTokenScopesAt(document, serializeLine, firstVarPos.character);
@@ -910,6 +974,53 @@ suite('daScript Syntax Highlighting Tests', () => {
             scope.includes('meta.function-call')
         );
         assert.ok(isAutoType && isNotFunctionScope, `'auto' after 'value:' should be highlighted as type, not function. Got scopes: ${JSON.stringify(autoAfterValueScopes?.scopes)}`);
+
+        // Test 8: Function with auto(TT) reference parameter
+        // def withAutoRef(value : auto(TT)&; array : auto(T)[])
+        let withAutoRefLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def withAutoRef(value : auto(TT)&')) {
+                withAutoRefLine = i;
+                break;
+            }
+        }
+        assert.ok(withAutoRefLine >= 0, 'Should find withAutoRef function declaration');
+
+        // Find 'TT' inside auto(TT)
+        const lineTextWithAutoRef = document.lineAt(withAutoRefLine).text;
+        const autoTTMatch = lineTextWithAutoRef.match(/auto\((TT)\)/);
+        assert.ok(autoTTMatch, 'Should find auto(TT) pattern in line');
+        
+        const ttIndex = lineTextWithAutoRef.indexOf(autoTTMatch[0]) + autoTTMatch[0].indexOf('TT');
+        const ttPos = new vscode.Position(withAutoRefLine, ttIndex);
+        const ttScopes = await getTokenScopesAt(document, withAutoRefLine, ttPos.character);
+        
+        // Verify 'TT' is highlighted as a type (entity.name.type), not as variable.parameter.identifier
+        const ttIsType = ttScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        const ttIsNotVariable = !ttScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter.identifier')
+        );
+        assert.ok(ttIsType, `'TT' inside auto(TT) should be highlighted as a type. Got scopes: ${JSON.stringify(ttScopes?.scopes)}`);
+        assert.ok(ttIsNotVariable, `'TT' inside auto(TT) should NOT be highlighted as variable.parameter.identifier. Got scopes: ${JSON.stringify(ttScopes?.scopes)}`);
+
+        // Also verify 'T' in auto(T)[] is highlighted as a type
+        const autoTMatch = lineTextWithAutoRef.match(/auto\((T)\)\[\]/);
+        if (autoTMatch) {
+            const tIndex = lineTextWithAutoRef.indexOf(autoTMatch[0]) + autoTMatch[0].indexOf('T');
+            const tPos = new vscode.Position(withAutoRefLine, tIndex);
+            const tScopes = await getTokenScopesAt(document, withAutoRefLine, tPos.character);
+            
+            const tIsType = tScopes?.scopes?.some(scope =>
+                scope.includes('entity.name.type')
+            );
+            const tIsNotVariable = !tScopes?.scopes?.some(scope =>
+                scope.includes('variable.parameter.identifier')
+            );
+            assert.ok(tIsType, `'T' inside auto(T)[] should be highlighted as a type. Got scopes: ${JSON.stringify(tScopes?.scopes)}`);
+            assert.ok(tIsNotVariable, `'T' inside auto(T)[] should NOT be highlighted as variable.parameter.identifier. Got scopes: ${JSON.stringify(tScopes?.scopes)}`);
+        }
 
         console.log('✓ Function return type annotations test passed');
     });
