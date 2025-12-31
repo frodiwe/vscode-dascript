@@ -79,3 +79,7 @@ def readData(let config : Config; let options : Options)
 // Function with mixed parameter modifiers
 def update(var mutable : int; let immutable : string; value : float)
     return
+
+// Multiline function with variables after return type
+def normalizeAngle(delta: float, ang: float, PI: float, TWO_PI: float) : float
+    return abs(delta) > PI ? ang + (delta > 0.f ? 1.f : -1.f) * TWO_PI : ang
