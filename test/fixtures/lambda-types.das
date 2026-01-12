@@ -30,3 +30,8 @@ var getId : lambda<uint64>
 
 // Lambda with double return type
 var getPrecision : lambda<double>
+
+// Lambda with namespace-qualified types
+var processFunc : lambda<(node : ast::TypeDecl) : void>
+var transformFunc : block<(expr : ast::Expression) : bool>
+var parseCallback : lambda<(ctx : parser::Context) : int>

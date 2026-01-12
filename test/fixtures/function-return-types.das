@@ -48,6 +48,20 @@ def private getData2 : string
 def public getData3 : int
     return 123
 
+// Namespace-qualified return types
+def getTypeDecl() : ast::TypeDecl
+    return new ast::TypeDecl
+
+def parseExpression() : parser::Expression
+    return new parser::Expression
+
+// Function with namespace-qualified parameter and return type
+def processNode(node : ast::TypeDecl) : bool
+    return true
+
+def handleExpression(expr : ast::ExprCall; ctx : parser::Context) : int
+    return 0
+
 // Function with var parameters
 def public serialize(var arch : Archive; var value : auto(TT)&)
     return

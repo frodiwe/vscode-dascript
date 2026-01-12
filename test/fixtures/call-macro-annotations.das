@@ -28,3 +28,12 @@ class private CoContinue : AstCallMacro
         macro_verify( call.arguments |> length==0,prog,call.at,"expecting co_continue()" )
         return <- qmacro_expr <|
             yield true
+
+// Function calls with bracket arguments (not annotations)
+def test_describe_function()
+    // describe is a function that takes bracket arguments with keyword args
+    let shortTypeName = describe([decl=typ, modules=false])
+    let fullTypeName = describe([decl=typ, modules=true])
+    
+    // Another function with similar pattern
+    let config = configure([verbose=true, level=2])

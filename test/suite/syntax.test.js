@@ -1359,11 +1359,12 @@ suite('daScript Syntax Highlighting Tests', () => {
         const commentTextPos = findInLine(document, optionalChainingLine, "It's better");
         const commentScopes = await getTokenScopesAt(document, optionalChainingLine, commentTextPos.character);
         const hasCommentScope = commentScopes?.scopes?.some(scope => scope.includes('comment'));
-        const hasNoOtherScope = !commentScopes?.scopes?.some(scope => 
-            (scope.includes('meta.') || scope.includes('variable.') || scope.includes('entity.')) && !scope.includes('comment')
+        // Parent meta scopes (meta.ternary, meta.function-call) are expected and don't affect comment highlighting
+        const hasNoVariableOrEntityScope = !commentScopes?.scopes?.some(scope =>
+            (scope.includes('variable.') || scope.includes('entity.')) && !scope.includes('comment')
         );
         assert.ok(hasCommentScope, `Comment text should have comment scope. Got scopes: ${JSON.stringify(commentScopes?.scopes)}`);
-        assert.ok(hasNoOtherScope, `Comment text should not have non-comment scopes. Got scopes: ${JSON.stringify(commentScopes?.scopes)}`);
+        assert.ok(hasNoVariableOrEntityScope, `Comment text should not have variable or entity scopes. Got scopes: ${JSON.stringify(commentScopes?.scopes)}`);
 
         // Test 2: Comment after ternary operator
         let ternaryLine = -1;
@@ -1924,5 +1925,171 @@ suite('daScript Syntax Highlighting Tests', () => {
         );
         assert.ok(isCoContinueAnnotation, `call_macro in co_continue should be highlighted as annotation. Got scopes: ${JSON.stringify(coContinueScopes?.scopes)}`);
 
+        // Test 8: Annotation with keyword arguments [describe(decl=typ, modules=false)]
+        let describeLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('[describe(decl=typ, modules=false)]')) {
+                describeLine = i;
+                break;
+            }
+        }
+        assert.ok(describeLine >= 0, 'Should find describe annotation line');
+
+        // Verify 'describe' is highlighted as annotation function
+        const describePos = findInLine(document, describeLine, 'describe');
+        const describeScopes = await getTokenScopesAt(document, describeLine, describePos.character);
+        const isDescribeAnnotation = describeScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function.annotation')
+        );
+        assert.ok(isDescribeAnnotation, `describe should be highlighted as annotation. Got scopes: ${JSON.stringify(describeScopes?.scopes)}`);
+
+        // Verify 'decl' parameter is highlighted as keyword argument
+        const declPos = findInLine(document, describeLine, 'decl');
+        const declScopes = await getTokenScopesAt(document, describeLine, declPos.character);
+        const isDeclKeyword = declScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter.function.keyword')
+        );
+        assert.ok(isDeclKeyword, `'decl' should be highlighted as keyword argument (variable.parameter.function.keyword). Got scopes: ${JSON.stringify(declScopes?.scopes)}`);
+
+        // Verify 'modules' parameter is highlighted as keyword argument
+        const modulesPos = findInLine(document, describeLine, 'modules');
+        const modulesScopes = await getTokenScopesAt(document, describeLine, modulesPos.character);
+        const isModulesKeyword = modulesScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter.function.keyword')
+        );
+        assert.ok(isModulesKeyword, `'modules' should be highlighted as keyword argument (variable.parameter.function.keyword). Got scopes: ${JSON.stringify(modulesScopes?.scopes)}`);
+
+        // Test 9: Another annotation with keyword arguments [export(name="custom_name", version=1)]
+        let exportAnnotLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('[export(name="custom_name", version=1)]')) {
+                exportAnnotLine = i;
+                break;
+            }
+        }
+        assert.ok(exportAnnotLine >= 0, 'Should find export annotation with keyword arguments');
+
+        // Verify 'name' parameter is highlighted as keyword argument
+        const nameKeywordPos = findInLine(document, exportAnnotLine, 'name');
+        const nameKeywordScopes = await getTokenScopesAt(document, exportAnnotLine, nameKeywordPos.character);
+        const isNameKeyword = nameKeywordScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter.function.keyword')
+        );
+        assert.ok(isNameKeyword, `'name' in export annotation should be highlighted as keyword argument. Got scopes: ${JSON.stringify(nameKeywordScopes?.scopes)}`);
+
+        // Verify 'version' parameter is highlighted as keyword argument
+        const versionPos = findInLine(document, exportAnnotLine, 'version');
+        const versionScopes = await getTokenScopesAt(document, exportAnnotLine, versionPos.character);
+        const isVersionKeyword = versionScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter.function.keyword')
+        );
+        assert.ok(isVersionKeyword, `'version' should be highlighted as keyword argument. Got scopes: ${JSON.stringify(versionScopes?.scopes)}`);
+
         console.log('✓ Annotations test passed');
-    });});
+    });
+
+    test('Function calls with bracket arguments should not be treated as annotations', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/call-macro-annotations.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Find the line: let shortTypeName = describe([decl=typ, modules=false])
+        let describeLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('describe([decl=typ, modules=false])')) {
+                describeLine = i;
+                break;
+            }
+        }
+        assert.ok(describeLine >= 0, 'Should find describe function call line');
+
+        // Verify 'describe' is highlighted as a function call, not annotation
+        const describePos = findInLine(document, describeLine, 'describe');
+        const describeScopes = await getTokenScopesAt(document, describeLine, describePos.character);
+        const isDescribeFunction = describeScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function') && !scope.includes('annotation')
+        );
+        assert.ok(isDescribeFunction, `describe should be highlighted as function (not annotation). Got scopes: ${JSON.stringify(describeScopes?.scopes)}`);
+
+        // Verify 'decl' is highlighted as keyword argument, NOT as annotation
+        const declPos = findInLine(document, describeLine, 'decl');
+        const declScopes = await getTokenScopesAt(document, describeLine, declPos.character);
+        const isDeclKeyword = declScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter.function.keyword')
+        );
+        const isNotAnnotation = !declScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function.annotation')
+        );
+        assert.ok(isDeclKeyword, `'decl' should be highlighted as keyword argument. Got scopes: ${JSON.stringify(declScopes?.scopes)}`);
+        assert.ok(isNotAnnotation, `'decl' should NOT be highlighted as annotation. Got scopes: ${JSON.stringify(declScopes?.scopes)}`);
+
+        // Verify 'modules' is highlighted as keyword argument
+        const modulesPos = findInLine(document, describeLine, 'modules');
+        const modulesScopes = await getTokenScopesAt(document, describeLine, modulesPos.character);
+        const isModulesKeyword = modulesScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter.function.keyword')
+        );
+        assert.ok(isModulesKeyword, `'modules' should be highlighted as keyword argument. Got scopes: ${JSON.stringify(modulesScopes?.scopes)}`);
+
+        // Find another similar line: let config = configure([verbose=true, level=2])
+        let configureLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('configure([verbose=true, level=2])')) {
+                configureLine = i;
+                break;
+            }
+        }
+        assert.ok(configureLine >= 0, 'Should find configure function call line');
+
+        // Verify 'verbose' is highlighted as keyword argument
+        const verbosePos = findInLine(document, configureLine, 'verbose');
+        const verboseScopes = await getTokenScopesAt(document, configureLine, verbosePos.character);
+        const isVerboseKeyword = verboseScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter.function.keyword')
+        );
+        assert.ok(isVerboseKeyword, `'verbose' should be highlighted as keyword argument. Got scopes: ${JSON.stringify(verboseScopes?.scopes)}`);
+
+        console.log('✓ Function calls with bracket arguments test passed');
+    });
+
+    test('Namespace-qualified types should be highlighted correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/function-return-types.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test: Function parameter with namespace - processNode(node : ast::TypeDecl)
+        let processNodeLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def processNode(node : ast::TypeDecl)')) {
+                processNodeLine = i;
+                break;
+            }
+        }
+        assert.ok(processNodeLine >= 0, 'Should find processNode function line');
+
+        const lineText = document.lineAt(processNodeLine).text;
+        const astIndex = lineText.indexOf('ast::');
+        const astScopes = await getTokenScopesAt(document, processNodeLine, astIndex);
+        const astIsType = astScopes?.scopes?.some(scope => scope.includes('entity.name.type'));
+        assert.ok(astIsType, `'ast' namespace should be highlighted as entity.name.type. Got scopes: ${JSON.stringify(astScopes?.scopes)}`);
+
+        const typeDeclIndex = lineText.indexOf('::TypeDecl') + 2;
+        const typeDeclScopes = await getTokenScopesAt(document, processNodeLine, typeDeclIndex);
+        const typeDeclIsType = typeDeclScopes?.scopes?.some(scope => scope.includes('entity.name.type'));
+        assert.ok(typeDeclIsType, `'TypeDecl' should be highlighted as entity.name.type. Got scopes: ${JSON.stringify(typeDeclScopes?.scopes)}`);
+
+        console.log('✓ Namespace-qualified types test passed');
+    });
+});

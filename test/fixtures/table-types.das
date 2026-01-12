@@ -26,3 +26,8 @@ var complex : table<NodeId, array<float>>
 // Table with builtin types
 var builtins : table<int64, double>
 var mixed : table<uint, bool>
+
+// Tables with namespace-qualified types
+var typeTable : table<string, ast::TypeDecl>
+var exprArray : array<ast::Expression>
+var contextMap : table<int, parser::Context>

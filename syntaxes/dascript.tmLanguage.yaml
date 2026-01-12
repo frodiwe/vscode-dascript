@@ -191,8 +191,9 @@ repository:
       # Structure annotations: [match_copy], [match_as_is], [some_annotation(arg1, arg2)], etc.
       # Don't match array indexing: arr[0], tm[index], matrix[row][col]
       # Don't match array literals: [[tuple<...>]]
+      # Don't match inside function calls: describe([...])
       - name: meta.annotation.structure.dascript
-        begin: (?<![[:alnum:]_\]\)\[])\[(?!\[)(?=\s*[[:alpha:]_])
+        begin: (?<![[:alnum:]_\]\)\[\(])\[(?!\[)(?=\s*[[:alpha:]_])
         beginCaptures:
           1: {name: punctuation.definition.annotation.begin.dascript}
         end: \]
@@ -209,6 +210,7 @@ repository:
             endCaptures:
               0: {name: punctuation.definition.arguments.end.dascript}
             patterns:
+              - include: '#keyword_arguments'
               - match: \b([[:alpha:]_][[:alnum:]_]*)(?=\s*[,)])
                 name: variable.parameter.function.argument.dascript
               - include: '#strings'
@@ -273,8 +275,9 @@ repository:
               0: {name: punctuation.definition.parameters.end.dascript}
             patterns:
               - include: '#builtin_types'
+              - include: '#namespace_qualified_type'
               - name: meta.parameter.dascript
-                match: \b([[:alpha:]_][[:alnum:]_]*)\s*(:)
+                match: \b([[:alpha:]_][[:alnum:]_]*)\s*(:)(?!:)
                 captures:
                   1: {name: variable.parameter.dascript}
                   2: {name: punctuation.separator.type.dascript}
@@ -288,6 +291,7 @@ repository:
             name: punctuation.separator.return-type.dascript
           - include: '#builtin_types'
           - include: '#generic_types'
+          - include: '#namespace_qualified_type'
           - match: \b([[:alnum:]_]+)\b
             name: entity.name.type.dascript
       - name: meta.generic.tuple.dascript
@@ -307,6 +311,7 @@ repository:
               1: {name: variable.parameter.dascript}
               2: {name: punctuation.separator.type.dascript}
           - include: '#builtin_types'
+          - include: '#namespace_qualified_type'
           - match: \b([[:alnum:]_]+)\b
             name: entity.name.type.dascript
           - match: ','
@@ -325,12 +330,14 @@ repository:
           - include: '#qmacro_escape_sequences'
           - include: '#generic_types'
           - include: '#keywords_without_operators'
+          - include: '#builtin_types'
+          - include: '#namespace_qualified_type'
           - name: meta.variant.field.dascript
-            begin: \b([[:alpha:]_][[:alnum:]_]*)\s*(:)
+            begin: \b([[:alpha:]_][[:alnum:]_]*)\s*(:)(?!:)
             beginCaptures:
               1: {name: variable.parameter.variant.identifier.dascript}
               2: {name: punctuation.separator.type.dascript}
-            end: (?=;|>)
+            end: (?=;|>|,)
             patterns:
               - name: meta.type.auto.parameterized.variant.dascript
                 begin: \b(auto)\s*(\()
@@ -345,9 +352,9 @@ repository:
                     match: \b([[:alnum:]_]+)\b
               - include: '#builtin_types'
               - include: '#generic_types'
+              - include: '#namespace_qualified_type'
               - match: \b([[:alnum:]_]+)\b
                 name: entity.name.type.dascript
-          - include: '#builtin_types'
           - match: \b([[:alnum:]_]+)\b
             name: entity.name.type.dascript
           - match: ';'
@@ -365,10 +372,19 @@ repository:
           - include: '#generic_types'
           - include: '#keywords_without_operators'
           - include: '#builtin_types'
+          - include: '#namespace_qualified_type'
           - match: \b([[:alnum:]_]+)\b
             name: entity.name.type.dascript
           - match: ';'
             name: punctuation.separator.generic.dascript
+  namespace_qualified_type:
+    patterns:
+      - name: meta.namespace.qualified.type.dascript
+        match: \b([[:alpha:]_][[:alnum:]_]*)(\:\:)([[:alpha:]_][[:alnum:]_]*)
+        captures:
+          1: {name: entity.name.type.namespace.dascript}
+          2: {name: punctuation.accessor.dascript}
+          3: {name: entity.name.type.dascript}
   builtin_types:
     patterns:
       - name: support.type.dascript # all basic types from ds_parser.ypp
@@ -451,6 +467,7 @@ repository:
               1: {name: punctuation.definition.arguments.begin.dascript}
             end: (?=\))
             patterns:
+                - include: '#keyword_arguments'
                 - include: '#literals'
                 - match: \b([[:alpha:]_][[:alnum:]_]*)(?=\s*[,)=\[])
                   name: variable.parameter.function.argument.dascript
@@ -640,6 +657,7 @@ repository:
       - include: '#literals'
       - include: '#template'
       - include: '#keywords'
+      - include: '#namespace_qualified_type'
       - match: ([[:alnum:]_]+)
         name: entity.name.type.dascript
   struct_declaration:
@@ -742,6 +760,7 @@ repository:
           - include: '#keywords'
           - include: '#qmacro_escape_sequences'
           - include: '#builtin_types'
+          - include: '#namespace_qualified_type'
           - match: \b([[:alnum:]_]+)\b
             name: entity.name.type.dascript
       - name: meta.template.dascript
@@ -766,6 +785,7 @@ repository:
                   1: {name: variable.parameter.function.dascript}
                 end: (?=\,|\))
                 patterns:
+                  - include: '#namespace_qualified_type'
                   - match: \b([[:alnum:]_]+)\b
                     name: entity.name.type.dascript
               - include: '#literals'
@@ -790,7 +810,8 @@ repository:
                       0: {name: punctuation.definition.parameters.end.dascript}
                     patterns:
                       - name: entity.name.type.auto.typename.dascript
-                        match: \b([[:alnum:]_]+)\b
+                include: '#namespace_qualified_type'
+              -         match: \b([[:alnum:]_]+)\b
               - match: \b([[:alnum:]_]+)\b
                 name: entity.name.type.variant.argument.dascript
           - name: meta.template.argument.auto.dascript

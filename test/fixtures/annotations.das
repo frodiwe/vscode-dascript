@@ -75,6 +75,16 @@ def queryOne(dt:float=1.0f) {
     }
 }
 
+// Functions with namespace-qualified types
+def parseAst(node : ast::TypeDecl)
+    pass
+
+struct CompilerState {
+    rootNode : ast::Module
+    currentExpr : ast::Expression
+    errorCtx : parser::ErrorContext
+}
+
 // More structure annotations
 [sealed]
 class FinalClass {
@@ -105,6 +115,19 @@ class private YieldFrom : AstCallMacro
 class private CoContinue : AstCallMacro
     def override visit(prog: ProgramPtr; mod: Module?)
         return false
+
+// Keyword arguments in annotations
+[describe(decl=typ, modules=false)]
+struct TypeDescription {
+    name : string
+    size : int
+}
+
+// More keyword arguments in annotations
+[export(name="custom_name", version=1)]
+class ExportedClass {
+    data : float
+}
 
 // Function macro annotation
 [function_macro]

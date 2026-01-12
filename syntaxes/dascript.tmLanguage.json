@@ -417,7 +417,7 @@
       "patterns": [
         {
           "name": "meta.annotation.structure.dascript",
-          "begin": "(?<![[:alnum:]_\\]\\)\\[])\\[(?!\\[)(?=\\s*[[:alpha:]_])",
+          "begin": "(?<![[:alnum:]_\\]\\)\\[\\(])\\[(?!\\[)(?=\\s*[[:alpha:]_])",
           "beginCaptures": {
             "1": {
               "name": "punctuation.definition.annotation.begin.dascript"
@@ -448,6 +448,9 @@
                 }
               },
               "patterns": [
+                {
+                  "include": "#keyword_arguments"
+                },
                 {
                   "match": "\\b([[:alpha:]_][[:alnum:]_]*)(?=\\s*[,)])",
                   "name": "variable.parameter.function.argument.dascript"
@@ -582,8 +585,11 @@
                   "include": "#builtin_types"
                 },
                 {
+                  "include": "#namespace_qualified_type"
+                },
+                {
                   "name": "meta.parameter.dascript",
-                  "match": "\\b([[:alpha:]_][[:alnum:]_]*)\\s*(:)",
+                  "match": "\\b([[:alpha:]_][[:alnum:]_]*)\\s*(:)(?!:)",
                   "captures": {
                     "1": {
                       "name": "variable.parameter.dascript"
@@ -616,6 +622,9 @@
             },
             {
               "include": "#generic_types"
+            },
+            {
+              "include": "#namespace_qualified_type"
             },
             {
               "match": "\\b([[:alnum:]_]+)\\b",
@@ -663,6 +672,9 @@
               "include": "#builtin_types"
             },
             {
+              "include": "#namespace_qualified_type"
+            },
+            {
               "match": "\\b([[:alnum:]_]+)\\b",
               "name": "entity.name.type.dascript"
             },
@@ -704,8 +716,14 @@
               "include": "#keywords_without_operators"
             },
             {
+              "include": "#builtin_types"
+            },
+            {
+              "include": "#namespace_qualified_type"
+            },
+            {
               "name": "meta.variant.field.dascript",
-              "begin": "\\b([[:alpha:]_][[:alnum:]_]*)\\s*(:)",
+              "begin": "\\b([[:alpha:]_][[:alnum:]_]*)\\s*(:)(?!:)",
               "beginCaptures": {
                 "1": {
                   "name": "variable.parameter.variant.identifier.dascript"
@@ -714,7 +732,7 @@
                   "name": "punctuation.separator.type.dascript"
                 }
               },
-              "end": "(?=;|>)",
+              "end": "(?=;|>|,)",
               "patterns": [
                 {
                   "name": "meta.type.auto.parameterized.variant.dascript",
@@ -747,13 +765,13 @@
                   "include": "#generic_types"
                 },
                 {
+                  "include": "#namespace_qualified_type"
+                },
+                {
                   "match": "\\b([[:alnum:]_]+)\\b",
                   "name": "entity.name.type.dascript"
                 }
               ]
-            },
-            {
-              "include": "#builtin_types"
             },
             {
               "match": "\\b([[:alnum:]_]+)\\b",
@@ -796,6 +814,9 @@
               "include": "#builtin_types"
             },
             {
+              "include": "#namespace_qualified_type"
+            },
+            {
               "match": "\\b([[:alnum:]_]+)\\b",
               "name": "entity.name.type.dascript"
             },
@@ -804,6 +825,25 @@
               "name": "punctuation.separator.generic.dascript"
             }
           ]
+        }
+      ]
+    },
+    "namespace_qualified_type": {
+      "patterns": [
+        {
+          "name": "meta.namespace.qualified.type.dascript",
+          "match": "\\b([[:alpha:]_][[:alnum:]_]*)(\\:\\:)([[:alpha:]_][[:alnum:]_]*)",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.namespace.dascript"
+            },
+            "2": {
+              "name": "punctuation.accessor.dascript"
+            },
+            "3": {
+              "name": "entity.name.type.dascript"
+            }
+          }
         }
       ]
     },
@@ -925,6 +965,9 @@
               },
               "end": "(?=\\))",
               "patterns": [
+                {
+                  "include": "#keyword_arguments"
+                },
                 {
                   "include": "#literals"
                 },
@@ -1303,6 +1346,9 @@
           "include": "#keywords"
         },
         {
+          "include": "#namespace_qualified_type"
+        },
+        {
           "match": "([[:alnum:]_]+)",
           "name": "entity.name.type.dascript"
         }
@@ -1518,6 +1564,9 @@
               "include": "#builtin_types"
             },
             {
+              "include": "#namespace_qualified_type"
+            },
+            {
               "match": "\\b([[:alnum:]_]+)\\b",
               "name": "entity.name.type.dascript"
             }
@@ -1564,6 +1613,9 @@
                   },
                   "end": "(?=\\,|\\))",
                   "patterns": [
+                    {
+                      "include": "#namespace_qualified_type"
+                    },
                     {
                       "match": "\\b([[:alnum:]_]+)\\b",
                       "name": "entity.name.type.dascript"
@@ -1613,12 +1665,15 @@
                       },
                       "patterns": [
                         {
-                          "name": "entity.name.type.auto.typename.dascript",
-                          "match": "\\b([[:alnum:]_]+)\\b"
+                          "name": "entity.name.type.auto.typename.dascript"
                         }
                       ]
                     }
-                  ]
+                  ],
+                  "include": "#namespace_qualified_type"
+                },
+                {
+                  "match": "\\b([[:alnum:]_]+)\\b"
                 },
                 {
                   "match": "\\b([[:alnum:]_]+)\\b",
