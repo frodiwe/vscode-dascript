@@ -1334,6 +1334,56 @@ suite('daScript Syntax Highlighting Tests', () => {
         console.log('✓ Comments syntax highlighting test passed');
     });
 
+    test('Inline comments after expressions with question marks should be highlighted as comments', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/comments.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Comment after optional chaining operator with generic type
+        let optionalChainingLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes("It's better than declaring typ as var")) {
+                optionalChainingLine = i;
+                break;
+            }
+        }
+        assert.ok(optionalChainingLine >= 0, 'Should find line with optional chaining and comment');
+
+        // Verify the comment text is highlighted as comment
+        const commentTextPos = findInLine(document, optionalChainingLine, "It's better");
+        const commentScopes = await getTokenScopesAt(document, optionalChainingLine, commentTextPos.character);
+        const hasCommentScope = commentScopes?.scopes?.some(scope => scope.includes('comment'));
+        const hasNoOtherScope = !commentScopes?.scopes?.some(scope => 
+            (scope.includes('meta.') || scope.includes('variable.') || scope.includes('entity.')) && !scope.includes('comment')
+        );
+        assert.ok(hasCommentScope, `Comment text should have comment scope. Got scopes: ${JSON.stringify(commentScopes?.scopes)}`);
+        assert.ok(hasNoOtherScope, `Comment text should not have non-comment scopes. Got scopes: ${JSON.stringify(commentScopes?.scopes)}`);
+
+        // Test 2: Comment after ternary operator
+        let ternaryLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('condition ? value1 : value2') && document.lineAt(i).text.includes('This should be a comment too')) {
+                ternaryLine = i;
+                break;
+            }
+        }
+        assert.ok(ternaryLine >= 0, 'Should find line with ternary and comment');
+
+        // Verify the comment after ternary is highlighted as comment
+        const ternaryCommentPos = findInLine(document, ternaryLine, 'This should be');
+        const ternaryCommentScopes = await getTokenScopesAt(document, ternaryLine, ternaryCommentPos.character);
+        const hasTernaryCommentScope = ternaryCommentScopes?.scopes?.some(scope => scope.includes('comment'));
+        assert.ok(hasTernaryCommentScope, `Comment after ternary should have comment scope. Got scopes: ${JSON.stringify(ternaryCommentScopes?.scopes)}`);
+
+        console.log('✓ Inline comments after question marks test passed');
+    });
+
     test('Comments in function return types should be highlighted as comments', async () => {
         const uri = vscode.Uri.file(
             path.join(__dirname, '../../test/fixtures/function-comments.das')

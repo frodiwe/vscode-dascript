@@ -621,6 +621,7 @@ repository:
       0: {name: keyword.operator.ternary.dascript}
     end: (?=\n|\;)
     patterns:
+      - include: '#comments'
       - match: ':'
         name: keyword.operator.ternary.dascript
       - include: '#strings'

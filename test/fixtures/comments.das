@@ -32,3 +32,9 @@ function someFunc(var self : SomeType, param : int) : bool
 // Single line with types: CombatUI? quat4 float3 int string
 // Keywords: var let function return if else for while
 // Operators: += -= *= /= == != <= >= && || ?? ?. <| |>
+
+// Comment after optional chaining operator
+clear(unsafe(reinterpret<TypeDecl?> typ.get_ptr()).dim) // It's better than declaring typ as var.
+
+// Comment after question mark in ternary-like expression
+let result = condition ? value1 : value2 // This should be a comment too
