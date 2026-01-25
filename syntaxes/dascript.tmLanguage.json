@@ -423,7 +423,7 @@
       "patterns": [
         {
           "name": "meta.annotation.structure.dascript",
-          "begin": "(?<![[:alnum:]_\\]\\)\\[])\\[(?!\\[)(?=\\s*[[:alpha:]_])",
+          "begin": "(?<![[:alnum:]_\\]\\)\\[\\(])\\[(?!\\[)(?=\\s*[[:alpha:]_])",
           "beginCaptures": {
             "1": {
               "name": "punctuation.definition.annotation.begin.dascript"
@@ -454,6 +454,17 @@
                 }
               },
               "patterns": [
+                {
+                  "match": "\\b([[:alpha:]_][[:alnum:]_]*)\\s*(=)(?!=)",
+                  "captures": {
+                    "1": {
+                      "name": "variable.parameter.function.keyword.dascript"
+                    },
+                    "2": {
+                      "name": "keyword.operator.assignment.dascript"
+                    }
+                  }
+                },
                 {
                   "match": "\\b([[:alpha:]_][[:alnum:]_]*)(?=\\s*[,)])",
                   "name": "variable.parameter.function.argument.dascript"
@@ -1007,6 +1018,43 @@
               },
               "end": "(?=\\))",
               "patterns": [
+                {
+                  "name": "meta.named-parameters.dascript",
+                  "begin": "\\[",
+                  "beginCaptures": {
+                    "0": {
+                      "name": "punctuation.definition.named-parameters.begin.dascript"
+                    }
+                  },
+                  "end": "\\]",
+                  "endCaptures": {
+                    "0": {
+                      "name": "punctuation.definition.named-parameters.end.dascript"
+                    }
+                  },
+                  "patterns": [
+                    {
+                      "match": "\\b([[:alpha:]_][[:alnum:]_]*)\\s*(=)(?!=)",
+                      "captures": {
+                        "1": {
+                          "name": "variable.parameter.function.keyword.dascript"
+                        },
+                        "2": {
+                          "name": "keyword.operator.assignment.dascript"
+                        }
+                      }
+                    },
+                    {
+                      "include": "#strings"
+                    },
+                    {
+                      "include": "#literals"
+                    },
+                    {
+                      "include": "$self"
+                    }
+                  ]
+                },
                 {
                   "include": "#literals"
                 },

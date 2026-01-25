@@ -111,3 +111,30 @@ class private CoContinue : AstCallMacro
 class TestMacro
     def apply()
         return 1
+// ============================================
+// Function calls with named parameters
+// NOT annotations - fn([arg1=val, arg2=val])
+// ============================================
+
+// Function call with named parameters - decl and modules are parameter names
+def test_named_params(typ : TypeDecl?)
+    describe([decl=typ, modules=false])
+
+// More examples of function calls with named parameters
+def test_more_named_params()
+    configure([verbose=true, output="file.txt"])
+    process([input=data, mode=1, validate=false])
+
+// Mixed positional and named parameters
+def test_mixed_params()
+    someFunction(arg1, [named=value])
+    callWithOptions(data, [format="json", pretty=true])
+
+// Nested function calls with named parameters
+def test_nested_named_params()
+    outer([inner=nested([deep=value])])
+
+// Named parameters with various value types
+def test_named_param_values()
+    func([intVal=42, floatVal=3.14, strVal="hello", boolVal=true])
+    func([nullVal=null, negVal=-10])
