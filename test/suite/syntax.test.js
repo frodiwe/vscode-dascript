@@ -1877,6 +1877,76 @@ suite('daScript Syntax Highlighting Tests', () => {
         console.log('✓ Annotations test passed');
     });
 
+    test('Function calls with named parameters should highlight correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/annotations.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: describe([decl=typ, modules=false]) - decl should be a parameter, not annotation
+        let describeLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('describe([decl=typ, modules=false])')) {
+                describeLine = i;
+                break;
+            }
+        }
+        assert.ok(describeLine >= 0, 'Should find describe function call line');
+
+        // Verify 'describe' is highlighted as a function
+        const describePos = findInLine(document, describeLine, 'describe');
+        const describeScopes = await getTokenScopesAt(document, describeLine, describePos.character);
+        const isDescribeFunction = describeScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function')
+        );
+        assert.ok(isDescribeFunction, `'describe' should be highlighted as a function. Got scopes: ${JSON.stringify(describeScopes?.scopes)}`);
+
+        // Verify 'decl' is highlighted as a parameter keyword, NOT as annotation
+        const declPos = findInLine(document, describeLine, 'decl');
+        const declScopes = await getTokenScopesAt(document, describeLine, declPos.character);
+        const isDeclParameter = declScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter')
+        );
+        const isDeclNotAnnotation = !declScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function.annotation')
+        );
+        assert.ok(isDeclParameter, `'decl' should be highlighted as a parameter. Got scopes: ${JSON.stringify(declScopes?.scopes)}`);
+        assert.ok(isDeclNotAnnotation, `'decl' should NOT be highlighted as annotation. Got scopes: ${JSON.stringify(declScopes?.scopes)}`);
+
+        // Verify 'modules' is also highlighted as a parameter keyword
+        const modulesPos = findInLine(document, describeLine, 'modules');
+        const modulesScopes = await getTokenScopesAt(document, describeLine, modulesPos.character);
+        const isModulesParameter = modulesScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter')
+        );
+        assert.ok(isModulesParameter, `'modules' should be highlighted as a parameter. Got scopes: ${JSON.stringify(modulesScopes?.scopes)}`);
+
+        // Test 2: configure([verbose=true, output="file.txt"])
+        let configureLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('configure([verbose=true')) {
+                configureLine = i;
+                break;
+            }
+        }
+        assert.ok(configureLine >= 0, 'Should find configure function call line');
+
+        // Verify 'verbose' is highlighted as a parameter
+        const verbosePos = findInLine(document, configureLine, 'verbose');
+        const verboseScopes = await getTokenScopesAt(document, configureLine, verbosePos.character);
+        const isVerboseParameter = verboseScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter')
+        );
+        assert.ok(isVerboseParameter, `'verbose' should be highlighted as a parameter. Got scopes: ${JSON.stringify(verboseScopes?.scopes)}`);
+
+        console.log('✓ Function calls with named parameters test passed');
+    });
+
     test('Apostrophes in comments should not be treated as string delimiters', async () => {
         const uri = vscode.Uri.file(
             path.join(__dirname, '../../test/fixtures/comments.das')

@@ -193,8 +193,9 @@ repository:
       # Structure annotations: [match_copy], [match_as_is], [some_annotation(arg1, arg2)], etc.
       # Don't match array indexing: arr[0], tm[index], matrix[row][col]
       # Don't match array literals: [[tuple<...>]]
+      # Don't match named parameter blocks: fn([arg=val])
       - name: meta.annotation.structure.dascript
-        begin: (?<![[:alnum:]_\]\)\[])\[(?!\[)(?=\s*[[:alpha:]_])
+        begin: (?<![[:alnum:]_\]\)\[\(])\[(?!\[)(?=\s*[[:alpha:]_])
         beginCaptures:
           1: {name: punctuation.definition.annotation.begin.dascript}
         end: \]
@@ -211,6 +212,11 @@ repository:
             endCaptures:
               0: {name: punctuation.definition.arguments.end.dascript}
             patterns:
+              # Named argument: name=value
+              - match: \b([[:alpha:]_][[:alnum:]_]*)\s*(=)(?!=)
+                captures:
+                  1: {name: variable.parameter.function.keyword.dascript}
+                  2: {name: keyword.operator.assignment.dascript}
               - match: \b([[:alpha:]_][[:alnum:]_]*)(?=\s*[,)])
                 name: variable.parameter.function.argument.dascript
               - include: '#strings'
@@ -486,6 +492,23 @@ repository:
               1: {name: punctuation.definition.arguments.begin.dascript}
             end: (?=\))
             patterns:
+                # Named parameters block: fn([arg1=val, arg2=val])
+                - name: meta.named-parameters.dascript
+                  begin: \[
+                  beginCaptures:
+                    0: {name: punctuation.definition.named-parameters.begin.dascript}
+                  end: \]
+                  endCaptures:
+                    0: {name: punctuation.definition.named-parameters.end.dascript}
+                  patterns:
+                    # Named parameter: name=value
+                    - match: \b([[:alpha:]_][[:alnum:]_]*)\s*(=)(?!=)
+                      captures:
+                        1: {name: variable.parameter.function.keyword.dascript}
+                        2: {name: keyword.operator.assignment.dascript}
+                    - include: '#strings'
+                    - include: '#literals'
+                    - include: $self
                 - include: '#literals'
                 - match: \b([[:alpha:]_][[:alnum:]_]*)(?=\s*[,)=\[])
                   name: variable.parameter.function.argument.dascript
