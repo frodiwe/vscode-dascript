@@ -32,3 +32,11 @@ function someFunc(var self : SomeType, param : int) : bool
 // Single line with types: CombatUI? quat4 float3 int string
 // Keywords: var let function return if else for while
 // Operators: += -= *= /= == != <= >= && || ?? ?. <| |>
+
+// Test apostrophes in comments - these should NOT be treated as strings
+// It's better than declaring typ as var.
+// Don't use this approach
+// The player's health shouldn't go below zero
+
+// Code with comment containing apostrophe
+clear(unsafe(reinterpret<TypeDecl?> typ.get_ptr()).dim) // It's better than declaring typ as var.
