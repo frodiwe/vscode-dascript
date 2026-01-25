@@ -1722,6 +1722,25 @@ suite('daScript Syntax Highlighting Tests', () => {
         );
         assert.ok(nestedFloatIsType, `float in array<float> should be highlighted as a type. Got scopes: ${JSON.stringify(nestedFloatScopes?.scopes)}`);
 
+        // Test 6: Variable names containing keywords should not highlight keywords within them
+        // e.g., 'modulesIncludes' should NOT highlight 'module' as a keyword
+        let modulesIncludesLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('var modulesIncludes : table<string>')) {
+                modulesIncludesLine = i;
+                break;
+            }
+        }
+        assert.ok(modulesIncludesLine >= 0, 'Should find modulesIncludes variable line');
+
+        // Verify 'module' within 'modulesIncludes' is NOT highlighted as a keyword
+        const modulesIncludesPos = findInLine(document, modulesIncludesLine, 'modulesIncludes');
+        const modulesIncludesScopes = await getTokenScopesAt(document, modulesIncludesLine, modulesIncludesPos.character);
+        const moduleIsKeyword = modulesIncludesScopes?.scopes?.some(scope =>
+            scope.includes('keyword.module')
+        );
+        assert.ok(!moduleIsKeyword, `'module' within 'modulesIncludes' should NOT be highlighted as keyword.module. Got scopes: ${JSON.stringify(modulesIncludesScopes?.scopes)}`);
+
         console.log('✓ Table type arguments test passed');
     });
 

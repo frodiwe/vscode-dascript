@@ -10,6 +10,11 @@ var simpleTable : table<int, string>
 var playerScores : table<NodeId, int>
 var entityHealth : table<NodeId, float>
 
+// Variable names containing keywords should not highlight keywords within them
+var modulesIncludes : table<string>
+var classNames : array<string>
+var functionPointers : table<string, function<():void>>
+
 // Table with custom types
 var customTable : table<EntityId, PlayerData>
 
