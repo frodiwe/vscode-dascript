@@ -12,6 +12,7 @@ patterns:
   - include: '#keywords'
   - include: '#strings'
   - include: '#builtin_types'
+  - include: '#module_qualified_type'
   - include: '#builtin_functions_name'
   - include: '#builtin_functions_call'
   - include: '#qmacro_escape_sequences'
@@ -274,6 +275,7 @@ repository:
               0: {name: punctuation.definition.parameters.end.dascript}
             patterns:
               - include: '#builtin_types'
+              - include: '#module_qualified_type'
               - name: meta.parameter.dascript
                 match: \b([[:alpha:]_][[:alnum:]_]*)\s*(:)
                 captures:
@@ -289,6 +291,7 @@ repository:
             name: punctuation.separator.return-type.dascript
           - include: '#builtin_types'
           - include: '#generic_types'
+          - include: '#module_qualified_type'
           - match: \b([[:alnum:]_]+)\b
             name: entity.name.type.dascript
       - name: meta.generic.tuple.dascript
@@ -308,6 +311,7 @@ repository:
               1: {name: variable.parameter.dascript}
               2: {name: punctuation.separator.type.dascript}
           - include: '#builtin_types'
+          - include: '#module_qualified_type'
           - match: \b([[:alnum:]_]+)\b
             name: entity.name.type.dascript
           - match: ','
@@ -346,9 +350,11 @@ repository:
                     match: \b([[:alnum:]_]+)\b
               - include: '#builtin_types'
               - include: '#generic_types'
+              - include: '#module_qualified_type'
               - match: \b([[:alnum:]_]+)\b
                 name: entity.name.type.dascript
           - include: '#builtin_types'
+          - include: '#module_qualified_type'
           - match: \b([[:alnum:]_]+)\b
             name: entity.name.type.dascript
           - match: ';'
@@ -366,6 +372,7 @@ repository:
           - include: '#generic_types'
           - include: '#keywords_without_operators'
           - include: '#builtin_types'
+          - include: '#module_qualified_type'
           - match: \b([[:alnum:]_]+)\b
             name: entity.name.type.dascript
           - match: ';'
@@ -446,10 +453,19 @@ repository:
         patterns:
           - include: '#builtin_types'
           - include: '#generic_types'
+          - include: '#module_qualified_type'
           - match: \?
             name: keyword.operator.optional.dascript
           - match: \b([[:alnum:]_]+)\b
             name: entity.name.type.dascript
+  module_qualified_type:
+    # Matches module-qualified types like ast::TypeDecl, math::Vector3, etc.
+    # The module namespace should be highlighted as a type, not a variable
+    match: \b([[:alpha:]_][[:alnum:]_]*)(::)([[:alpha:]_][[:alnum:]_]*)\b
+    captures:
+      1: {name: entity.name.type.module.dascript}
+      2: {name: punctuation.separator.namespace.dascript}
+      3: {name: entity.name.type.dascript}
   qmacro_functions:
     name: meta.function-call.qmacro.dascript
     match: \b(qmacro_block|qmacro|qmacro_function|qmacro_type|qmacro_template_class|qmacro_variable)\b
@@ -558,6 +574,7 @@ repository:
       - include: '#keywords'
       - include: '#builtin_types'
       - include: '#generic_types'
+      - include: '#module_qualified_type'
       - match: ([[:alnum:]_]+)
         name: entity.name.type.dascript
   arrays:
@@ -658,6 +675,7 @@ repository:
       - include: '#literals'
       - include: '#template'
       - include: '#keywords'
+      - include: '#module_qualified_type'
       - match: ([[:alnum:]_]+)
         name: entity.name.type.dascript
   struct_declaration:
@@ -760,6 +778,7 @@ repository:
           - include: '#keywords'
           - include: '#qmacro_escape_sequences'
           - include: '#builtin_types'
+          - include: '#module_qualified_type'
           - match: \b([[:alnum:]_]+)\b
             name: entity.name.type.dascript
       - name: meta.template.dascript
@@ -770,6 +789,7 @@ repository:
         patterns:
           - include: '#literals'
           - include: '#keywords'
+          - include: '#module_qualified_type'
           - name: meta.template.function-pointer.dascript
             begin: \(
             beginCaptures:
@@ -784,12 +804,13 @@ repository:
                   1: {name: variable.parameter.function.dascript}
                 end: (?=\,|\))
                 patterns:
+                  - include: '#module_qualified_type'
                   - match: \b([[:alnum:]_]+)\b
                     name: entity.name.type.dascript
               - include: '#literals'
               - include: '#keywords'
           - name: meta.template.argument.variant.dascript
-            begin: \b([[:alnum:]_]+)\s*\:\s*
+            begin: \b([[:alnum:]_]+)\s*\:(?!:)\s*
             beginCaptures:
               1: {name: variable.parameter.variant.identifier.dascript}
             end: (?=\,|\;|\>)
@@ -809,6 +830,7 @@ repository:
                     patterns:
                       - name: entity.name.type.auto.typename.dascript
                         match: \b([[:alnum:]_]+)\b
+              - include: '#module_qualified_type'
               - match: \b([[:alnum:]_]+)\b
                 name: entity.name.type.variant.argument.dascript
           - name: meta.template.argument.auto.dascript

@@ -2045,4 +2045,88 @@ suite('daScript Syntax Highlighting Tests', () => {
 
         console.log('✓ Cast/reinterpret types test passed');
     });
+
+    test('Module-qualified types (namespace::Type) should highlight namespace as type', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/cast-types.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Find line with reinterpret<ast::TypeDecl?>
+        let moduleQualifiedLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('reinterpret<ast::TypeDecl?>')) {
+                moduleQualifiedLine = i;
+                break;
+            }
+        }
+        assert.ok(moduleQualifiedLine >= 0, 'Should find line with reinterpret<ast::TypeDecl?>');
+
+        // Verify 'ast' is highlighted as a type (module namespace), NOT as a variable
+        const astPos = findInLine(document, moduleQualifiedLine, 'ast');
+        const astScopes = await getTokenScopesAt(document, moduleQualifiedLine, astPos.character);
+        const isAstType = astScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        const isNotVariable = !astScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter')
+        );
+        assert.ok(isAstType, `'ast' in reinterpret<ast::TypeDecl?> should be highlighted as a type. Got scopes: ${JSON.stringify(astScopes?.scopes)}`);
+        assert.ok(isNotVariable, `'ast' in reinterpret<ast::TypeDecl?> should NOT be highlighted as a variable. Got scopes: ${JSON.stringify(astScopes?.scopes)}`);
+
+        // Verify 'TypeDecl' is also highlighted as a type
+        const typeDeclPos = findInLine(document, moduleQualifiedLine, 'TypeDecl');
+        const typeDeclScopes = await getTokenScopesAt(document, moduleQualifiedLine, typeDeclPos.character);
+        const isTypeDeclType = typeDeclScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        assert.ok(isTypeDeclType, `'TypeDecl' in reinterpret<ast::TypeDecl?> should be highlighted as a type. Got scopes: ${JSON.stringify(typeDeclScopes?.scopes)}`);
+
+        // Test 2: Variable declaration with module-qualified type
+        let varDeclLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('var td : ast::TypeDecl')) {
+                varDeclLine = i;
+                break;
+            }
+        }
+        assert.ok(varDeclLine >= 0, 'Should find line with var td : ast::TypeDecl');
+
+        // Verify 'ast' in variable declaration is highlighted as a type
+        const varAstPos = findInLine(document, varDeclLine, 'ast');
+        const varAstScopes = await getTokenScopesAt(document, varDeclLine, varAstPos.character);
+        const isVarAstType = varAstScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        assert.ok(isVarAstType, `'ast' in 'var td : ast::TypeDecl' should be highlighted as a type. Got scopes: ${JSON.stringify(varAstScopes?.scopes)}`);
+
+        // Test 3: smart_ptr<ast::TypeDecl> - module-qualified type inside generic/template
+        let smartPtrLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('smart_ptr<ast::TypeDecl>')) {
+                smartPtrLine = i;
+                break;
+            }
+        }
+        assert.ok(smartPtrLine >= 0, 'Should find line with smart_ptr<ast::TypeDecl>');
+
+        // Verify 'ast' inside smart_ptr<> is highlighted as a type, NOT as a variant identifier
+        const smartPtrAstPos = findInLine(document, smartPtrLine, 'ast');
+        const smartPtrAstScopes = await getTokenScopesAt(document, smartPtrLine, smartPtrAstPos.character);
+        const isSmartPtrAstType = smartPtrAstScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        const isNotVariantIdentifier = !smartPtrAstScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter.variant')
+        );
+        assert.ok(isSmartPtrAstType, `'ast' in smart_ptr<ast::TypeDecl> should be highlighted as a type. Got scopes: ${JSON.stringify(smartPtrAstScopes?.scopes)}`);
+        assert.ok(isNotVariantIdentifier, `'ast' in smart_ptr<ast::TypeDecl> should NOT be highlighted as a variant identifier. Got scopes: ${JSON.stringify(smartPtrAstScopes?.scopes)}`);
+
+        console.log('✓ Module-qualified types test passed');
+    });
 });
