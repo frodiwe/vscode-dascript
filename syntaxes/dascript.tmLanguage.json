@@ -34,6 +34,9 @@
       "include": "#builtin_types"
     },
     {
+      "include": "#module_qualified_type"
+    },
+    {
       "include": "#builtin_functions_name"
     },
     {
@@ -585,6 +588,9 @@
                   "include": "#builtin_types"
                 },
                 {
+                  "include": "#module_qualified_type"
+                },
+                {
                   "name": "meta.parameter.dascript",
                   "match": "\\b([[:alpha:]_][[:alnum:]_]*)\\s*(:)",
                   "captures": {
@@ -619,6 +625,9 @@
             },
             {
               "include": "#generic_types"
+            },
+            {
+              "include": "#module_qualified_type"
             },
             {
               "match": "\\b([[:alnum:]_]+)\\b",
@@ -664,6 +673,9 @@
             },
             {
               "include": "#builtin_types"
+            },
+            {
+              "include": "#module_qualified_type"
             },
             {
               "match": "\\b([[:alnum:]_]+)\\b",
@@ -750,6 +762,9 @@
                   "include": "#generic_types"
                 },
                 {
+                  "include": "#module_qualified_type"
+                },
+                {
                   "match": "\\b([[:alnum:]_]+)\\b",
                   "name": "entity.name.type.dascript"
                 }
@@ -757,6 +772,9 @@
             },
             {
               "include": "#builtin_types"
+            },
+            {
+              "include": "#module_qualified_type"
             },
             {
               "match": "\\b([[:alnum:]_]+)\\b",
@@ -797,6 +815,9 @@
             },
             {
               "include": "#builtin_types"
+            },
+            {
+              "include": "#module_qualified_type"
             },
             {
               "match": "\\b([[:alnum:]_]+)\\b",
@@ -923,6 +944,9 @@
               "include": "#generic_types"
             },
             {
+              "include": "#module_qualified_type"
+            },
+            {
               "match": "\\?",
               "name": "keyword.operator.optional.dascript"
             },
@@ -933,6 +957,20 @@
           ]
         }
       ]
+    },
+    "module_qualified_type": {
+      "match": "\\b([[:alpha:]_][[:alnum:]_]*)(::)([[:alpha:]_][[:alnum:]_]*)\\b",
+      "captures": {
+        "1": {
+          "name": "entity.name.type.module.dascript"
+        },
+        "2": {
+          "name": "punctuation.separator.namespace.dascript"
+        },
+        "3": {
+          "name": "entity.name.type.dascript"
+        }
+      }
     },
     "qmacro_functions": {
       "name": "meta.function-call.qmacro.dascript",
@@ -1144,6 +1182,9 @@
           "include": "#generic_types"
         },
         {
+          "include": "#module_qualified_type"
+        },
+        {
           "match": "([[:alnum:]_]+)",
           "name": "entity.name.type.dascript"
         }
@@ -1342,6 +1383,9 @@
         },
         {
           "include": "#keywords"
+        },
+        {
+          "include": "#module_qualified_type"
         },
         {
           "match": "([[:alnum:]_]+)",
@@ -1559,6 +1603,9 @@
               "include": "#builtin_types"
             },
             {
+              "include": "#module_qualified_type"
+            },
+            {
               "match": "\\b([[:alnum:]_]+)\\b",
               "name": "entity.name.type.dascript"
             }
@@ -1579,6 +1626,9 @@
             },
             {
               "include": "#keywords"
+            },
+            {
+              "include": "#module_qualified_type"
             },
             {
               "name": "meta.template.function-pointer.dascript",
@@ -1606,6 +1656,9 @@
                   "end": "(?=\\,|\\))",
                   "patterns": [
                     {
+                      "include": "#module_qualified_type"
+                    },
+                    {
                       "match": "\\b([[:alnum:]_]+)\\b",
                       "name": "entity.name.type.dascript"
                     }
@@ -1621,7 +1674,7 @@
             },
             {
               "name": "meta.template.argument.variant.dascript",
-              "begin": "\\b([[:alnum:]_]+)\\s*\\:\\s*",
+              "begin": "\\b([[:alnum:]_]+)\\s*\\:(?!:)\\s*",
               "beginCaptures": {
                 "1": {
                   "name": "variable.parameter.variant.identifier.dascript"
@@ -1660,6 +1713,9 @@
                       ]
                     }
                   ]
+                },
+                {
+                  "include": "#module_qualified_type"
                 },
                 {
                   "match": "\\b([[:alnum:]_]+)\\b",
