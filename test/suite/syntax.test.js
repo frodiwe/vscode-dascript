@@ -2218,4 +2218,82 @@ suite('daScript Syntax Highlighting Tests', () => {
 
         console.log('✓ Module-qualified types test passed');
     });
+
+    test('Safe navigation operators (?as and ?is) should be highlighted as keywords', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/safe-navigation-operators.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Find line with ?as operator
+        let safeAsLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('someValue ?as int')) {
+                safeAsLine = i;
+                break;
+            }
+        }
+        assert.ok(safeAsLine >= 0, 'Should find line with ?as operator');
+
+        // Verify 'as' after '?' is highlighted as a keyword, NOT as a variable
+        // The '?' is not highlighted, only 'as' is
+        const questionMarkPos = findInLine(document, safeAsLine, '?as');
+        const safeAsScopes = await getTokenScopesAt(document, safeAsLine, questionMarkPos.character + 1); // +1 to get 'as' after '?'
+        const isSafeAsKeyword = safeAsScopes?.scopes?.some(scope =>
+            scope.includes('keyword.control')
+        );
+        const isSafeAsNotVariable = !safeAsScopes?.scopes?.some(scope =>
+            scope.includes('variable')
+        );
+        assert.ok(isSafeAsKeyword, `'as' in '?as' should be highlighted as keyword.control. Got scopes: ${JSON.stringify(safeAsScopes?.scopes)}`);
+        assert.ok(isSafeAsNotVariable, `'as' in '?as' should NOT be highlighted as a variable. Got scopes: ${JSON.stringify(safeAsScopes?.scopes)}`);
+
+        // Test 2: Find line with ?is operator
+        let safeIsLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('value ?is int')) {
+                safeIsLine = i;
+                break;
+            }
+        }
+        assert.ok(safeIsLine >= 0, 'Should find line with ?is operator');
+
+        // Verify 'is' after '?' is highlighted as a keyword, NOT as a variable
+        // The '?' is not highlighted, only 'is' is
+        const questionMarkIsPos = findInLine(document, safeIsLine, '?is');
+        const safeIsScopes = await getTokenScopesAt(document, safeIsLine, questionMarkIsPos.character + 1); // +1 to get 'is' after '?'
+        const isSafeIsKeyword = safeIsScopes?.scopes?.some(scope =>
+            scope.includes('keyword.control')
+        );
+        const isSafeIsNotVariable = !safeIsScopes?.scopes?.some(scope =>
+            scope.includes('variable')
+        );
+        assert.ok(isSafeIsKeyword, `'is' in '?is' should be highlighted as keyword.control. Got scopes: ${JSON.stringify(safeIsScopes?.scopes)}`);
+        assert.ok(isSafeIsNotVariable, `'is' in '?is' should NOT be highlighted as a variable. Got scopes: ${JSON.stringify(safeIsScopes?.scopes)}`);
+
+        // Test 3: ?as with CustomType
+        let customTypeLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('?as CustomType')) {
+                customTypeLine = i;
+                break;
+            }
+        }
+        assert.ok(customTypeLine >= 0, 'Should find line with ?as CustomType');
+
+        // Verify 'as' after '?' with custom type is highlighted as keyword
+        const customQuestionMarkPos = findInLine(document, customTypeLine, '?as');
+        const customSafeAsScopes = await getTokenScopesAt(document, customTypeLine, customQuestionMarkPos.character + 1); // +1 to get 'as' after '?'
+        const isCustomSafeAsKeyword = customSafeAsScopes?.scopes?.some(scope =>
+            scope.includes('keyword.control')
+        );
+        assert.ok(isCustomSafeAsKeyword, `'as' in '?as CustomType' should be highlighted as keyword.control. Got scopes: ${JSON.stringify(customSafeAsScopes?.scopes)}`);
+
+        console.log('✓ Safe navigation operators (?as and ?is) test passed');
+    });
 });
