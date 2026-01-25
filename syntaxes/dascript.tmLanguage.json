@@ -19,6 +19,9 @@
       "include": "#function_return_type"
     },
     {
+      "include": "#cast_types"
+    },
+    {
       "include": "#generic_types"
     },
     {
@@ -877,6 +880,9 @@
           "end": "(?=\\))",
           "patterns": [
             {
+              "include": "#comments"
+            },
+            {
               "match": "\\b([[:alpha:]_][[:alnum:]_]*)(?=\\s*[,)=\\[])",
               "name": "variable.parameter.function.argument.dascript"
             },
@@ -890,9 +896,47 @@
         }
       ]
     },
+    "cast_types": {
+      "patterns": [
+        {
+          "name": "meta.cast.dascript",
+          "begin": "\\b(reinterpret|cast|upcast)\\s*(<)",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.modifier.specifier.cast.dascript"
+            },
+            "2": {
+              "name": "punctuation.definition.generic.begin.dascript"
+            }
+          },
+          "end": "(>)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.generic.end.dascript"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#builtin_types"
+            },
+            {
+              "include": "#generic_types"
+            },
+            {
+              "match": "\\?",
+              "name": "keyword.operator.optional.dascript"
+            },
+            {
+              "match": "\\b([[:alnum:]_]+)\\b",
+              "name": "entity.name.type.dascript"
+            }
+          ]
+        }
+      ]
+    },
     "qmacro_functions": {
       "name": "meta.function-call.qmacro.dascript",
-      "match": "\\b(qmacro_block|qmacro|qmacro_function|qmacro_type|qmacro_template_class|qmacro_variable|qmacro_expr)\\b",
+      "match": "\\b(qmacro_block|qmacro|qmacro_function|qmacro_type|qmacro_template_class|qmacro_variable)\\b",
       "captures": {
         "1": {
           "name": "entity.name.function"

@@ -1875,4 +1875,174 @@ suite('daScript Syntax Highlighting Tests', () => {
         assert.ok(isCoContinueAnnotation, `call_macro in co_continue should be highlighted as annotation. Got scopes: ${JSON.stringify(coContinueScopes?.scopes)}`);
 
         console.log('✓ Annotations test passed');
-    });});
+    });
+
+    test('Apostrophes in comments should not be treated as string delimiters', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/comments.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Find line with apostrophe in comment "It's better"
+        let apostropheCommentLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text === "// It's better than declaring typ as var.") {
+                apostropheCommentLine = i;
+                break;
+            }
+        }
+        assert.ok(apostropheCommentLine >= 0, 'Should find line with apostrophe in comment');
+
+        // Verify the apostrophe is only highlighted as comment, NOT as string
+        const apostrophePos = document.lineAt(apostropheCommentLine).text.indexOf("'");
+        const apostropheScopes = await getTokenScopesAt(document, apostropheCommentLine, apostrophePos);
+        const hasCommentScope = apostropheScopes?.scopes?.some(scope => scope.includes('comment'));
+        const hasNoStringScope = !apostropheScopes?.scopes?.some(scope => scope.includes('string.quoted'));
+        assert.ok(hasCommentScope, `Apostrophe in comment should have comment scope. Got scopes: ${JSON.stringify(apostropheScopes?.scopes)}`);
+        assert.ok(hasNoStringScope, `Apostrophe in comment should NOT have string.quoted scope. Got scopes: ${JSON.stringify(apostropheScopes?.scopes)}`);
+
+        // Test 2: Find line "Don't use this approach"
+        let dontLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes("// Don't use this approach")) {
+                dontLine = i;
+                break;
+            }
+        }
+        assert.ok(dontLine >= 0, 'Should find "Don\'t" comment line');
+
+        const dontApostrophePos = document.lineAt(dontLine).text.indexOf("'");
+        const dontScopes = await getTokenScopesAt(document, dontLine, dontApostrophePos);
+        const dontHasComment = dontScopes?.scopes?.some(scope => scope.includes('comment'));
+        const dontHasNoString = !dontScopes?.scopes?.some(scope => scope.includes('string.quoted'));
+        assert.ok(dontHasComment, `Apostrophe in "Don't" should have comment scope. Got scopes: ${JSON.stringify(dontScopes?.scopes)}`);
+        assert.ok(dontHasNoString, `Apostrophe in "Don't" should NOT have string.quoted scope. Got scopes: ${JSON.stringify(dontScopes?.scopes)}`);
+
+        // Test 3: Code line with trailing comment containing apostrophe
+        let codeWithCommentLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes("reinterpret<TypeDecl?>") && document.lineAt(i).text.includes("// It's")) {
+                codeWithCommentLine = i;
+                break;
+            }
+        }
+        assert.ok(codeWithCommentLine >= 0, 'Should find code line with trailing comment');
+
+        // Verify the apostrophe in the trailing comment is not treated as string
+        const lineText = document.lineAt(codeWithCommentLine).text;
+        const commentStart = lineText.indexOf("//");
+        const apostropheInComment = lineText.indexOf("'", commentStart);
+        if (apostropheInComment >= 0) {
+            const trailingApostropheScopes = await getTokenScopesAt(document, codeWithCommentLine, apostropheInComment);
+            const trailingHasComment = trailingApostropheScopes?.scopes?.some(scope => scope.includes('comment'));
+            const trailingHasNoString = !trailingApostropheScopes?.scopes?.some(scope => scope.includes('string.quoted'));
+            assert.ok(trailingHasComment, `Apostrophe in trailing comment should have comment scope. Got scopes: ${JSON.stringify(trailingApostropheScopes?.scopes)}`);
+            assert.ok(trailingHasNoString, `Apostrophe in trailing comment should NOT have string.quoted scope. Got scopes: ${JSON.stringify(trailingApostropheScopes?.scopes)}`);
+        }
+
+        console.log('✓ Apostrophes in comments test passed');
+    });
+
+    test('Types in reinterpret and cast angle brackets should be highlighted as types', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/cast-types.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Find line with reinterpret<TypeDecl?>
+        let reinterpretLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('reinterpret<TypeDecl?>')) {
+                reinterpretLine = i;
+                break;
+            }
+        }
+        assert.ok(reinterpretLine >= 0, 'Should find line with reinterpret<TypeDecl?>');
+
+        // Verify 'reinterpret' is highlighted as a cast keyword
+        const reinterpretPos = findInLine(document, reinterpretLine, 'reinterpret');
+        const reinterpretScopes = await getTokenScopesAt(document, reinterpretLine, reinterpretPos.character);
+        const isReinterpretKeyword = reinterpretScopes?.scopes?.some(scope =>
+            scope.includes('storage.modifier.specifier.cast')
+        );
+        assert.ok(isReinterpretKeyword, `'reinterpret' should be highlighted as cast specifier. Got scopes: ${JSON.stringify(reinterpretScopes?.scopes)}`);
+
+        // Verify 'TypeDecl' inside angle brackets is highlighted as a type, NOT as a variable
+        const typeDeclPos = findInLine(document, reinterpretLine, 'TypeDecl');
+        const typeDeclScopes = await getTokenScopesAt(document, reinterpretLine, typeDeclPos.character);
+        const isType = typeDeclScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        const isNotVariable = !typeDeclScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter')
+        );
+        assert.ok(isType, `'TypeDecl' in reinterpret<TypeDecl?> should be highlighted as a type. Got scopes: ${JSON.stringify(typeDeclScopes?.scopes)}`);
+        assert.ok(isNotVariable, `'TypeDecl' in reinterpret<TypeDecl?> should NOT be highlighted as a variable. Got scopes: ${JSON.stringify(typeDeclScopes?.scopes)}`);
+
+        // Test 2: Find line with cast<CustomType>
+        let castLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('cast<CustomType>')) {
+                castLine = i;
+                break;
+            }
+        }
+        assert.ok(castLine >= 0, 'Should find line with cast<CustomType>');
+
+        // Verify 'CustomType' inside cast<> is highlighted as a type
+        const customTypePos = findInLine(document, castLine, 'CustomType');
+        const customTypeScopes = await getTokenScopesAt(document, castLine, customTypePos.character);
+        const isCustomType = customTypeScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        assert.ok(isCustomType, `'CustomType' in cast<CustomType> should be highlighted as a type. Got scopes: ${JSON.stringify(customTypeScopes?.scopes)}`);
+
+        // Test 3: Find line with upcast<BaseClass>
+        let upcastLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('upcast<BaseClass>')) {
+                upcastLine = i;
+                break;
+            }
+        }
+        assert.ok(upcastLine >= 0, 'Should find line with upcast<BaseClass>');
+
+        // Verify 'BaseClass' inside upcast<> is highlighted as a type
+        const baseClassPos = findInLine(document, upcastLine, 'BaseClass');
+        const baseClassScopes = await getTokenScopesAt(document, upcastLine, baseClassPos.character);
+        const isBaseClass = baseClassScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.type')
+        );
+        assert.ok(isBaseClass, `'BaseClass' in upcast<BaseClass> should be highlighted as a type. Got scopes: ${JSON.stringify(baseClassScopes?.scopes)}`);
+
+        // Test 4: Built-in type in reinterpret (should still work)
+        let builtinReinterpretLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('reinterpret<float>')) {
+                builtinReinterpretLine = i;
+                break;
+            }
+        }
+        assert.ok(builtinReinterpretLine >= 0, 'Should find line with reinterpret<float>');
+
+        // Verify 'float' inside reinterpret<> is highlighted as a built-in type
+        const floatPos = findInLine(document, builtinReinterpretLine, 'float');
+        const floatScopes = await getTokenScopesAt(document, builtinReinterpretLine, floatPos.character);
+        const isBuiltinType = floatScopes?.scopes?.some(scope =>
+            scope.includes('support.type') || scope.includes('entity.name.type')
+        );
+        assert.ok(isBuiltinType, `'float' in reinterpret<float> should be highlighted as a type. Got scopes: ${JSON.stringify(floatScopes?.scopes)}`);
+
+        console.log('✓ Cast/reinterpret types test passed');
+    });
+});
