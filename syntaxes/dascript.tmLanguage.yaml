@@ -752,7 +752,7 @@ repository:
       - include: '#literals'
   module_specifier:
     name: meta.module.dascript
-    begin: \b(module)\s*([[:alnum:]_]+)\s*(public|private|shared)?\s(public|private|shared)?
+    begin: \b(module)\s+([[:alnum:]_]+)\s*(public|private|shared)?\s?(public|private|shared)?
     beginCaptures:
       1: {name: keyword.module.dascript}
       2: {name: entity.name.type.module.dascript}
