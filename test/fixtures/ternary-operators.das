@@ -13,3 +13,16 @@ def normalizeAngle(delta: float, ang: float, PI: float, TWO_PI: float) : float
 // Complex nested ternary with function calls
 def getStatus(value: int, max: int) : string
     return value < 0 ? "invalid" : value > max ? "overflow" : "{value}"
+
+// Ternary with piped function call - should not break highlighting
+def test_ternary_with_piped(scene, target: string)
+    let animchar_node_collapser__targetNode = target == "" ? -1 : scene |> scene_instance_getNodeId(target)
+    return animchar_node_collapser__targetNode
+
+// Ternary with piped call followed by comma (in array/tuple context)
+def test_ternary_piped_comma(scene, target: string)
+    var data <- [[auto
+        targetNode = target == "" ? -1 : scene |> scene_instance_getNodeId(target),
+        otherValue = 42
+    ]]
+    return data
