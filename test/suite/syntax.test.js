@@ -2296,4 +2296,144 @@ suite('daScript Syntax Highlighting Tests', () => {
 
         console.log('✓ Safe navigation operators (?as and ?is) test passed');
     });
+
+    test('Piped function calls should highlight function names correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/piped-function-calls.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Simple piped call - scene |> get_node_id("test")
+        let simplePipeLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('scene |> get_node_id')) {
+                simplePipeLine = i;
+                break;
+            }
+        }
+        assert.ok(simplePipeLine >= 0, 'Should find simple piped call line');
+
+        // Verify 'get_node_id' is highlighted as function
+        const funcPos = findInLine(document, simplePipeLine, 'get_node_id');
+        const funcScopes = await getTokenScopesAt(document, simplePipeLine, funcPos.character);
+        const isFunction = funcScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function')
+        );
+        assert.ok(isFunction, `'get_node_id' after |> should be highlighted as function. Got scopes: ${JSON.stringify(funcScopes?.scopes)}`);
+
+        // Test 2: Piped call without parentheses - scene |> process_all
+        let noPipeLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('scene |> process_all')) {
+                noPipeLine = i;
+                break;
+            }
+        }
+        assert.ok(noPipeLine >= 0, 'Should find piped call without parens line');
+
+        // Verify 'process_all' is highlighted as function, not variable
+        const processPos = findInLine(document, noPipeLine, 'process_all');
+        const processScopes = await getTokenScopesAt(document, noPipeLine, processPos.character);
+        const isProcessFunction = processScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function')
+        );
+        const notVariable = !processScopes?.scopes?.some(scope =>
+            scope.includes('variable.parameter.identifier')
+        );
+        assert.ok(isProcessFunction, `'process_all' after |> should be highlighted as function. Got scopes: ${JSON.stringify(processScopes?.scopes)}`);
+        assert.ok(notVariable, `'process_all' after |> should NOT be highlighted as variable. Got scopes: ${JSON.stringify(processScopes?.scopes)}`);
+
+        // Test 3: Chained piped calls - scene |> find_node(name) |> get_transform()
+        let chainedLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('find_node(name) |> get_transform')) {
+                chainedLine = i;
+                break;
+            }
+        }
+        assert.ok(chainedLine >= 0, 'Should find chained piped calls line');
+
+        // Verify both functions are highlighted
+        const findNodePos = findInLine(document, chainedLine, 'find_node');
+        const findNodeScopes = await getTokenScopesAt(document, chainedLine, findNodePos.character);
+        const isFindFunction = findNodeScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function')
+        );
+        assert.ok(isFindFunction, `'find_node' should be highlighted as function. Got scopes: ${JSON.stringify(findNodeScopes?.scopes)}`);
+
+        const getTransformPos = findInLine(document, chainedLine, 'get_transform');
+        const getTransformScopes = await getTokenScopesAt(document, chainedLine, getTransformPos.character);
+        const isGetTransformFunction = getTransformScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function')
+        );
+        assert.ok(isGetTransformFunction, `'get_transform' should be highlighted as function. Got scopes: ${JSON.stringify(getTransformScopes?.scopes)}`);
+
+        console.log('✓ Piped function calls test passed');
+    });
+
+    test('Ternary with piped function calls should not break highlighting', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/ternary-operators.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Find the line with ternary + piped call: target == "" ? -1 : scene |> scene_instance_getNodeId(target)
+        let ternaryPipeLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('scene |> scene_instance_getNodeId')) {
+                ternaryPipeLine = i;
+                break;
+            }
+        }
+        assert.ok(ternaryPipeLine >= 0, 'Should find ternary with piped call line');
+
+        // Verify 'scene_instance_getNodeId' is highlighted as function
+        const funcPos = findInLine(document, ternaryPipeLine, 'scene_instance_getNodeId');
+        const funcScopes = await getTokenScopesAt(document, ternaryPipeLine, funcPos.character);
+        const isFunction = funcScopes?.scopes?.some(scope =>
+            scope.includes('entity.name.function')
+        );
+        assert.ok(isFunction, `'scene_instance_getNodeId' after |> should be highlighted as function. Got scopes: ${JSON.stringify(funcScopes?.scopes)}`);
+
+        // Verify that 'target' inside the function call is highlighted correctly (not bleeding into piped scope)
+        const lineText = document.lineAt(ternaryPipeLine).text;
+        const targetText = 'scene_instance_getNodeId(target)';
+        const targetStartIndex = lineText.indexOf(targetText);
+        if (targetStartIndex >= 0) {
+            const targetParamIndex = targetStartIndex + targetText.indexOf('target');
+            const targetScopes = await getTokenScopesAt(document, ternaryPipeLine, targetParamIndex);
+            // Should be in function argument scope, not in meta.function-call.piped scope at this level
+            const hasFunctionArg = targetScopes?.scopes?.some(scope =>
+                scope.includes('variable.parameter') || scope.includes('meta.function-call.dascript')
+            );
+            // Should not have the piped scope extending over the argument
+            const notInPipedMetaOnly = targetScopes?.scopes?.some(scope =>
+                !scope.includes('meta.function-call.piped') || scope.includes('meta.function-call.dascript')
+            );
+            assert.ok(hasFunctionArg || notInPipedMetaOnly, `'target' parameter should be highlighted correctly. Got scopes: ${JSON.stringify(targetScopes?.scopes)}`);
+        }
+
+        // Verify tokens after piped call (comma) are highlighted normally
+        const commaPos = lineText.indexOf(',', funcPos.character);
+        if (commaPos >= 0) {
+            const commaScopes = await getTokenScopesAt(document, ternaryPipeLine, commaPos);
+            // Comma should not be stuck in piped function call scope
+            const notStuckInPiped = !commaScopes?.scopes?.some(scope =>
+                scope === 'meta.function-call.piped.dascript' && commaScopes?.scopes?.length === 2
+            );
+            assert.ok(notStuckInPiped, `Comma after piped call should not extend piped scope. Got scopes: ${JSON.stringify(commaScopes?.scopes)}`);
+        }
+
+        console.log('✓ Ternary with piped function calls test passed');
+    });
 });

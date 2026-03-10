@@ -96,11 +96,11 @@ repository:
       - name: keyword.operator.dascript
         match: \.|\?\.|\?\?
       - name: keyword.operator.dascript
-        match: <\||\|>
+        match: <\|
       - name: keyword.operator.comparison.dascript
-        match: <=|>=|==|!=|<|>
+        match: <=|>=|==|!=|<(?!\|)|>
       - name: keyword.operator.dascript
-        match: \&|!|\|
+        match: \&|!|\|(?!>)
       - name: keyword.operator.assignment.dascript
         match: (=|:=|<-)
       - name: keyword.operator.increment.dascript
@@ -514,11 +514,13 @@ repository:
                   name: variable.parameter.function.argument.dascript
                 - include: '#strings'
                 - include: $self
+      # Piped function call: |> functionName
+      # Just marks the operator and function name, lets other patterns handle arguments
       - name: meta.function-call.piped.dascript
-        begin: (?:\|\>)\s*([[:alnum:]_]+)\s*
-        beginCaptures:
-          1: {name: entity.name.function}
-        end: (?:\<\|)
+        match: (\|\>)\s*([[:alnum:]_]+)
+        captures:
+          1: {name: keyword.operator.pipe.dascript}
+          2: {name: entity.name.function}
   qmacro_escape_sequences:
     patterns:
       # Macro reification escape sequences: $e(), $v(), $i(), $t(), $a(), $c(), $b()

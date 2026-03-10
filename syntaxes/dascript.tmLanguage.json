@@ -217,15 +217,15 @@
         },
         {
           "name": "keyword.operator.dascript",
-          "match": "<\\||\\|>"
+          "match": "<\\|"
         },
         {
           "name": "keyword.operator.comparison.dascript",
-          "match": "<=|>=|==|!=|<|>"
+          "match": "<=|>=|==|!=|<(?!\\|)|>"
         },
         {
           "name": "keyword.operator.dascript",
-          "match": "\\&|!|\\|"
+          "match": "\\&|!|\\|(?!>)"
         },
         {
           "name": "keyword.operator.assignment.dascript",
@@ -1074,13 +1074,15 @@
         },
         {
           "name": "meta.function-call.piped.dascript",
-          "begin": "(?:\\|\\>)\\s*([[:alnum:]_]+)\\s*",
-          "beginCaptures": {
+          "match": "(\\|\\>)\\s*([[:alnum:]_]+)",
+          "captures": {
             "1": {
+              "name": "keyword.operator.pipe.dascript"
+            },
+            "2": {
               "name": "entity.name.function"
             }
-          },
-          "end": "(?:\\<\\|)"
+          }
         }
       ]
     },
