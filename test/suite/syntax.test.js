@@ -2092,4 +2092,144 @@ suite('daScript Syntax Highlighting Tests', () => {
 
         console.log('✓ Namespace-qualified types test passed');
     });
+
+    test('Types inside smart_ptr and other generic containers should be highlighted correctly', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/smart-ptr-types.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Function parameter with smart_ptr<ast::TypeDecl>
+        let funcLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def getBaseCppType(typ : smart_ptr<ast::TypeDecl>')) {
+                funcLine = i;
+                break;
+            }
+        }
+        assert.ok(funcLine >= 0, 'Should find getBaseCppType function line');
+
+        const lineText = document.lineAt(funcLine).text;
+        const typeDeclIndex = lineText.indexOf('TypeDecl');
+        const typeDeclScopes = await getTokenScopesAt(document, funcLine, typeDeclIndex);
+        const typeDeclIsType = typeDeclScopes?.scopes?.some(scope => scope.includes('entity.name.type'));
+        assert.ok(typeDeclIsType, `'TypeDecl' inside smart_ptr<ast::TypeDecl> should be highlighted as entity.name.type. Got scopes: ${JSON.stringify(typeDeclScopes?.scopes)}`);
+
+        // Test 2: Variable declaration with smart_ptr<ExprCallMacro>
+        let varLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('var exprPtr : smart_ptr<ExprCallMacro>')) {
+                varLine = i;
+                break;
+            }
+        }
+        assert.ok(varLine >= 0, 'Should find exprPtr variable line');
+
+        const varLineText = document.lineAt(varLine).text;
+        const exprCallMacroIndex = varLineText.indexOf('ExprCallMacro');
+        const exprCallMacroScopes = await getTokenScopesAt(document, varLine, exprCallMacroIndex);
+        const exprCallMacroIsType = exprCallMacroScopes?.scopes?.some(scope => scope.includes('entity.name.type'));
+        assert.ok(exprCallMacroIsType, `'ExprCallMacro' inside smart_ptr<ExprCallMacro> should be highlighted as entity.name.type. Got scopes: ${JSON.stringify(exprCallMacroScopes?.scopes)}`);
+
+        // Test 3: Nested template - table<string; smart_ptr<ast::TypeDecl>>
+        let nestedLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('var complexType : table<string; smart_ptr<ast::TypeDecl>>')) {
+                nestedLine = i;
+                break;
+            }
+        }
+        assert.ok(nestedLine >= 0, 'Should find complexType variable line');
+
+        const nestedLineText = document.lineAt(nestedLine).text;
+        const nestedTypeDeclIndex = nestedLineText.indexOf('TypeDecl');
+        const nestedTypeDeclScopes = await getTokenScopesAt(document, nestedLine, nestedTypeDeclIndex);
+        const nestedTypeDeclIsType = nestedTypeDeclScopes?.scopes?.some(scope => scope.includes('entity.name.type'));
+        assert.ok(nestedTypeDeclIsType, `'TypeDecl' inside table<string; smart_ptr<ast::TypeDecl>> should be highlighted as entity.name.type. Got scopes: ${JSON.stringify(nestedTypeDeclScopes?.scopes)}`);
+
+        // Test 4: Variant with smart_ptr - variant<node : smart_ptr<TypeDecl>; expr : smart_ptr<ExprNode>>
+        let variantLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('var variantType : variant<node : smart_ptr<TypeDecl>')) {
+                variantLine = i;
+                break;
+            }
+        }
+        assert.ok(variantLine >= 0, 'Should find variantType variable line');
+
+        const variantLineText = document.lineAt(variantLine).text;
+        const variantTypeDeclIndex = variantLineText.indexOf('TypeDecl');
+        const variantTypeDeclScopes = await getTokenScopesAt(document, variantLine, variantTypeDeclIndex);
+        const variantTypeDeclIsType = variantTypeDeclScopes?.scopes?.some(scope => scope.includes('entity.name.type'));
+        assert.ok(variantTypeDeclIsType, `'TypeDecl' inside variant field smart_ptr<TypeDecl> should be highlighted as entity.name.type. Got scopes: ${JSON.stringify(variantTypeDeclScopes?.scopes)}`);
+
+        console.log('✓ Types inside smart_ptr and generic containers test passed');
+    });
+
+    test('Module keyword should not match within identifiers', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/module-keyword.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+
+        // Wait for tokenization to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Test 1: Variable name "modulesIncludes" should NOT have "module" highlighted as keyword
+        let varLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('var modulesIncludes : table<string>')) {
+                varLine = i;
+                break;
+            }
+        }
+        assert.ok(varLine >= 0, 'Should find modulesIncludes variable line');
+
+        const lineText = document.lineAt(varLine).text;
+        const moduleIndex = lineText.indexOf('module'); // First occurrence of "module" in "modulesIncludes"
+        const moduleScopes = await getTokenScopesAt(document, varLine, moduleIndex);
+        const isNotModuleKeyword = !moduleScopes?.scopes?.some(scope => scope.includes('keyword.module'));
+        assert.ok(isNotModuleKeyword, `'module' within 'modulesIncludes' should NOT be highlighted as keyword. Got scopes: ${JSON.stringify(moduleScopes?.scopes)}`);
+
+        // Test 2: Proper module declaration should be highlighted as keyword
+        let moduleLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('module test_module public')) {
+                moduleLine = i;
+                break;
+            }
+        }
+        assert.ok(moduleLine >= 0, 'Should find module declaration line');
+
+        const moduleLineText = document.lineAt(moduleLine).text;
+        const moduleKeywordIndex = moduleLineText.indexOf('module');
+        const moduleKeywordScopes = await getTokenScopesAt(document, moduleLine, moduleKeywordIndex);
+        const isModuleKeyword = moduleKeywordScopes?.scopes?.some(scope => scope.includes('keyword.module'));
+        assert.ok(isModuleKeyword, `'module' in module declaration should be highlighted as keyword. Got scopes: ${JSON.stringify(moduleKeywordScopes?.scopes)}`);
+
+        // Test 3: Function name containing "module" should not have "module" as keyword
+        let funcLine = -1;
+        for (let i = 0; i < document.lineCount; i++) {
+            if (document.lineAt(i).text.includes('def getModuleInfo()')) {
+                funcLine = i;
+                break;
+            }
+        }
+        assert.ok(funcLine >= 0, 'Should find getModuleInfo function line');
+
+        const funcLineText = document.lineAt(funcLine).text;
+        const funcModuleIndex = funcLineText.indexOf('Module'); // In "getModuleInfo"
+        const funcModuleScopes = await getTokenScopesAt(document, funcLine, funcModuleIndex);
+        const isFuncNotKeyword = !funcModuleScopes?.scopes?.some(scope => scope.includes('keyword.module'));
+        assert.ok(isFuncNotKeyword, `'Module' within function name should NOT be keyword. Got scopes: ${JSON.stringify(funcModuleScopes?.scopes)}`);
+
+        console.log('✓ Module keyword within identifiers test passed');
+    });
 });
