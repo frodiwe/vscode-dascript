@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npx --version; \\(Get-Command vsce -ErrorAction SilentlyContinue\\).Source)"
+    ]
+  }
+}
