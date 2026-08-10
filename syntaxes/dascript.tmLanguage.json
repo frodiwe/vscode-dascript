@@ -1393,6 +1393,9 @@
       "end": "(?=\\n|\\;)",
       "patterns": [
         {
+          "include": "#comments"
+        },
+        {
           "match": ":",
           "name": "keyword.operator.ternary.dascript"
         },
