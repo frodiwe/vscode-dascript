@@ -40,3 +40,7 @@ function someFunc(var self : SomeType, param : int) : bool
 
 // Code with comment containing apostrophe
 clear(unsafe(reinterpret<TypeDecl?> typ.get_ptr()).dim) // It's better than declaring typ as var.
+
+struct Foo {
+    @do_not_delete ar : array<uint8>? // TODO: remove ar if it's owned by the stream
+}
