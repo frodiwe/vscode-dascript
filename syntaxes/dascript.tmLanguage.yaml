@@ -572,7 +572,7 @@ repository:
   function:
     patterns:
       - name: meta.function.dascript
-        match: \b(def)\s+((?:private|public|abstract|override|static)\s+)?((?:private|public|abstract|override)\s+)?(operator\s+)?([[:alnum:]_]+)
+        match: \b(def)\s+((?:(?:private|public|abstract|override|static)\s+)*)(operator\s+)?([[:alnum:]_]+)
         captures:
           1:
             name: storage.type.function.dascript
@@ -581,8 +581,6 @@ repository:
           3:
             name: keyword.type.dascript
           4:
-            name: keyword.type.dascript
-          5:
             name: entity.name.function.dascript
   function_return_type:
     name: meta.function.return-type.dascript
@@ -647,21 +645,19 @@ repository:
           - include: '#strings'
   function_no_args:
     name: meta.funciton.noargs.dascript
-    begin: (def)\s+((?:private|public|abstract|override|static)\s+)?((?:private|public|abstract|override)\s+)?\s*(?:(operator\s*(.+?))|([[:alnum:]_]*))\s*(?!\()(?:\s*\:\s*([[:alnum:]_]+))?\s*(?=$|\{)
+    begin: (def)\s+((?:(?:private|public|abstract|override|static)\s+)*)\s*(?:(operator\s*(.+?))|([[:alnum:]_]*))\s*(?!\()(?:\s*\:\s*([[:alnum:]_]+))?\s*(?=$|\{)
     beginCaptures:
       1:
         name: keyword.type.def.dascript
       2:
         name: keyword.type.modifier.dascript
       3:
-        name: keyword.type.modifier.dascript
-      4:
         name: keyword.type.operator.dascript
-      5:
+      4:
         name: entity.name.function.operator.dascript
-      6:
+      5:
         name: entity.name.function.dascript
-      7:
+      6:
         name: entity.name.type.function.return.dascript
     end: (?=$|\{)
   blocks:

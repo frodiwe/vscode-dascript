@@ -2436,4 +2436,47 @@ suite('daScript Syntax Highlighting Tests', () => {
 
         console.log('✓ Ternary with piped function calls test passed');
     });
+
+    test('Multiple function modifiers should be keywords, not the function name', async () => {
+        const uri = vscode.Uri.file(
+            path.join(__dirname, '../../test/fixtures/function-defs.das')
+        );
+
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // 'def private static submit_message(...)' and 'def public override abstract tick : int'
+        const cases = [
+            { def: 'def private static ', modifiers: ['private', 'static'], name: 'submit_message' },
+            { def: 'def public override abstract ', modifiers: ['public', 'override', 'abstract'], name: 'tick' }
+        ];
+
+        for (const c of cases) {
+            let defLine = -1;
+            for (let i = 0; i < document.lineCount; i++) {
+                if (document.lineAt(i).text.startsWith(c.def)) {
+                    defLine = i;
+                    break;
+                }
+            }
+            assert.ok(defLine >= 0, `Should find line starting with "${c.def}"`);
+
+            for (const modifier of c.modifiers) {
+                const pos = findInLine(document, defLine, modifier);
+                const scopes = await getTokenScopesAt(document, defLine, pos.character);
+                const isKeyword = scopes?.scopes?.some(scope => scope.includes('keyword'));
+                const isFunctionName = scopes?.scopes?.some(scope => scope.includes('entity.name.function'));
+                assert.ok(isKeyword, `'${modifier}' should be a keyword. Got scopes: ${JSON.stringify(scopes?.scopes)}`);
+                assert.ok(!isFunctionName, `'${modifier}' should NOT be the function name. Got scopes: ${JSON.stringify(scopes?.scopes)}`);
+            }
+
+            const namePos = findInLine(document, defLine, c.name);
+            const nameScopes = await getTokenScopesAt(document, defLine, namePos.character);
+            const isName = nameScopes?.scopes?.some(scope => scope.includes('entity.name.function'));
+            assert.ok(isName, `'${c.name}' should be the function name. Got scopes: ${JSON.stringify(nameScopes?.scopes)}`);
+        }
+
+        console.log('✓ Function modifiers test passed');
+    });
 });
