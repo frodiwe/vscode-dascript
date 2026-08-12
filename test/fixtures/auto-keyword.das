@@ -38,4 +38,4 @@ def complex_nested() : iterator<variant<
     pending : bool;
     failed : string
 >>
-    return yield success = [[ResultType 0]]
+    yield success = [[ResultType 0]]
